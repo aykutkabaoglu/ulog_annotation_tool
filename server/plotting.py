@@ -6,12 +6,16 @@ from bokeh.plotting import figure
 from bokeh.models import CustomJS, Model, BoxAnnotation
 from bokeh.palettes import Dark2_5 as palette
 
+#TODO: create plots according to csv files' contents and do not provide topic names and attributes
+
 figures = [
     {
         "title": "Attitude.Pitch",
         "plots": [
             {"col": "vehicle_attitude.pitch", "label": "Pitch"},
             {"col": "vehicle_attitude_setpoint.pitch_d", "label": "Pitch Setpoint"},
+            {"col": "vehicle_attitude.pitchspeed", "label": "Pitch Speed"},
+            {"col": "vehicle_attitude_setpoint.pitch_body", "label": "Pitch Body"},
         ],
     },
     {
@@ -19,6 +23,8 @@ figures = [
         "plots": [
             {"col": "vehicle_attitude.roll", "label": "Roll"},
             {"col": "vehicle_attitude_setpoint.roll_d", "label": "Roll Setpoint"},
+            {"col": "vehicle_attitude.rollspeed", "label": "Roll Speed"},
+            {"col": "vehicle_attitude_setpoint.roll_body", "label": "Roll Body"},
         ],
     },
     {
@@ -26,6 +32,10 @@ figures = [
         "plots": [
             {"col": "vehicle_attitude.yaw", "label": "Yaw"},
             {"col": "vehicle_attitude_setpoint.yaw_d", "label": "Yaw Setpoint"},
+            {"col": "vehicle_attitude.yawspeed", "label": "Yaw Speed"},
+            {"col": "vehicle_attitude_setpoint.yaw_body", "label": "Yaw Body"},
+            {"col": "vehicle_local_position.yaw", "label": "Local Yaw"},
+            {"col": "vehicle_local_position_setpoint.yaw", "label": "Local Setpoint Yaw"},
         ],
     },
     {
@@ -47,6 +57,8 @@ figures = [
         "plots": [
             {"col": "vehicle_local_position.z", "label": "Z"},
             {"col": "vehicle_local_position_setpoint.z", "label": "Z Setpoint"},
+            {"col": "vehicle_air_data.baro_alt_meter", "label": "Altitude(m)"},
+            {"col": "distance_sensor.current_distance", "label": "Distance Sensor"},
         ],
     },
     {
@@ -58,6 +70,22 @@ figures = [
         ],
     },
     {
+        "title": "Acceleration",
+        "plots": [
+            {"col": "vehicle_local_position.ax", "label": "ax"},
+            {"col": "vehicle_local_position.ay", "label": "ay"},
+            {"col": "vehicle_local_position.az", "label": "az"},
+        ],
+    },
+    {
+        "title": "Gyroscope",
+        "plots": [
+            {"col": "sensor_combined.gyro_rad[0]", "label": "gx"},
+            {"col": "sensor_combined.gyro_rad[1]", "label": "gy"},
+            {"col": "sensor_combined.gyro_rad[2]", "label": "gz"},
+        ],
+    },    
+    {
         "title": "Magnetometer",
         "plots": [
             {"col": "vehicle_magnetometer.magnetometer_ga[0]", "label": "X"},
@@ -65,6 +93,58 @@ figures = [
             {"col": "vehicle_magnetometer.magnetometer_ga[2]", "label": "Z"},
         ],
     },
+    {
+        "title": "Magnetometer",
+        "plots": [
+            {"col": "sensor_combined.magnetometer_ga[0]", "label": "X"},
+            {"col": "sensor_combined.magnetometer_ga[1]", "label": "Y"},
+            {"col": "sensor_combined.magnetometer_ga[2]", "label": "Z"},
+        ],
+    },    
+    {
+        "title": "Velocity",
+        "plots": [
+            {"col": "vehicle_local_position.vx", "label": "Vx"},
+            {"col": "vehicle_local_position_setpoint.vx", "label": "Vx Setpoint"},
+            {"col": "vehicle_local_position.vy", "label": "Vy"},
+            {"col": "vehicle_local_position_setpoint.vy", "label": "Vy Setpoint"},
+            {"col": "vehicle_local_position.vz", "label": "Vz"},
+            {"col": "vehicle_local_position_setpoint.vz", "label": "Vz Setpoint"},
+        ],
+    },
+    {
+        "title": "Altitude",
+        "plots": [
+            {"col": "vehicle_air_data.baro_alt_meter", "label": "baro_alt_meter"},
+            {"col": "gps_position.alt", "label": "GPS Alt"},
+            {"col": "sensor_combined.alt", "label": "Sensor Alt"},
+            {"col": "vehicle_global_position.alt", "label": "Global Position Alt"},
+            #{"col": "position_setpoint_triplet.current.alt", "label": "Sensor Alt"},
+        ],
+    },
+    {
+        "title": "Actuator Controls",
+        "plots": [
+            {"col": "actuator_controls.thrust", "label": "thrust"},
+            {"col": "actuator_controls.control[0]", "label": "Ctrl 0"},
+            {"col": "actuator_controls.control[1]", "label": "Ctrl 1"},
+            {"col": "actuator_controls.control[2]", "label": "Ctrl 2"},
+            {"col": "actuator_controls.control[3]", "label": "Ctrl 3"},
+        ],
+    },
+    {
+        "title": "Actuator Outputs",
+        "plots": [
+            {"col": "actuator_outputs.output[0]", "label": "Output 0"},
+            {"col": "actuator_outputs.output[1]", "label": "Output 1"},
+            {"col": "actuator_outputs.output[2]", "label": "Output 2"},
+            {"col": "actuator_outputs.output[3]", "label": "Output 3"},
+            {"col": "actuator_outputs.output[4]", "label": "Output 4"},
+            {"col": "actuator_outputs.output[5]", "label": "Output 5"},
+            {"col": "actuator_outputs.output[6]", "label": "Output 6"},
+            {"col": "actuator_outputs.output[7]", "label": "Output 7"},
+        ],
+    },    
 ]
 
 
@@ -78,16 +158,19 @@ def plot_df(df: pd.DataFrame, models: Model = None, highlight: bool = True):
         else:
             f["model"] = models[i]
         for p in f["plots"]:
-            y = df[p["col"]]
-            x = np.arange(y.shape[0])
-            f["model"].line(
-                x,
-                y,
-                color=next(colors),
-                legend_label=p["label"],
-                line_width=2,
-                alpha=alpha,
-            )
+            try:
+                y = df[p["col"]]
+                x = np.arange(y.shape[0])
+                f["model"].line(
+                    x,
+                    y,
+                    color=next(colors),
+                    legend_label=p["label"],
+                    line_width=2,
+                    alpha=alpha,
+                )
+            except:
+                print("Couldn't find", p["col"])
         if not models:
             f["model"].legend.click_policy = "hide"
             if highlight:

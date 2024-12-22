@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+#TODO: add multi-class anomaly classification feature
+
 from tornado.web import RequestHandler
 
 from bokeh.layouts import row, column
