@@ -16,6 +16,7 @@ from bokeh.models import (
     TextInput,
     InlineStyleSheet,
     Paragraph,
+    Select,
 )
 
 import os
@@ -122,6 +123,46 @@ def annotate(doc: Document):
             transform: rotate(360deg);
           }
         }
+
+        .file-list-panel {
+            width: 250px;
+            background: #f5f5f5;
+            padding: 15px;
+            border-left: 1px solid #ddd;
+            height: 100vh;
+            overflow-y: auto;
+            position: fixed;
+            right: 0;
+            top: 0;
+        }
+
+        .file-list-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #3498db;
+        }
+
+        .file-item {
+            padding: 8px;
+            margin: 4px 0;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .file-labeled {
+            background: #e1f5e1;
+            color: #2c662d;
+        }
+
+        .file-unlabeled {
+            background: #fff;
+            color: #666;
+        }
+
+        .main-content {
+            margin-right: 250px;
+        }
     """
     )
     title = Div(
@@ -136,7 +177,7 @@ def annotate(doc: Document):
     bskip = Button(label="Skip", button_type="primary")
     bsave = Button(label="Save", button_type="primary")
     bundo = Button(label="Undo", button_type="primary")
-    name = TextInput(placeholder="Contributor name")
+    note = TextInput(placeholder="Add a note for this annotation")
 
     # Source to receive value passed by button
     source = ColumnDataSource(data=dict(data=[]))
@@ -156,6 +197,94 @@ def annotate(doc: Document):
         return
     models = plot_df(df)
 
+    # Add class selector
+    anomaly_classes = ['Class A', 'Class B', 'Class C']  # Customize your classes
+    class_select = Select(
+        title="Anomaly Class:",
+        value=anomaly_classes[0],
+        options=anomaly_classes
+    )
+
+    # Add filename display
+    filename_display = Div(
+        text="Current file: None",
+        styles={
+            "font-size": "1.2rem",
+            "font-weight": "bold",
+            "margin-left": "30px",
+            "color": "#666"
+        }
+    )
+
+    # Create file list panel
+    file_list_title = Div(
+        text="Files in Directory",
+        css_classes=["file-list-title"]
+    )
+
+    def create_file_list():
+        all_files = set(os.listdir(csv_dir))
+        labeled_files = set(os.listdir(output_csv_dir))
+        
+        file_items = []
+        
+        # Process all files
+        for fname in sorted(all_files):  # Sort files for consistent display
+            if fname.endswith('.csv'):
+                is_labeled = fname in labeled_files
+                file_info = mapping.get(fname[:-4], {"annotations": []})
+                annotations = file_info.get("annotations", [])
+                
+                if is_labeled and annotations:
+                    # Show file with its annotations
+                    classes = ", ".join(set(ann["class"] for ann in annotations))
+                    annotation_count = len(annotations)
+                    text = f"✓ {fname}<br><small>Classes: {classes}<br>Annotations: {annotation_count}</small>"
+                    div = Div(text=text, css_classes=["file-item", "file-labeled"])
+                else:
+                    # Show unlabeled file
+                    div = Div(text=f"○ {fname}", css_classes=["file-item", "file-unlabeled"])
+                file_items.append(div)
+        
+        return file_items
+
+    file_list = column(
+        file_list_title,
+        *create_file_list(),
+        css_classes=["file-list-panel"]
+    )
+
+    # Update the layout to include the file list panel
+    main_content = column(
+        column(
+            row(
+                title,
+                filename_display,
+                loader,
+                sizing_mode="scale_width",
+                css_classes=["nav"],
+                stylesheets=[stylesheet],
+            ),
+            row(
+                note,
+                class_select,
+                bundo,
+                bskip,
+                bsave,
+                sizing_mode="scale_width",
+                css_classes=["nav"],
+                stylesheets=[stylesheet],
+            ),
+            tutorial,
+            *models,
+            stylesheets=[stylesheet],
+        ),
+        sizing_mode="scale_width",
+        styles={"align-items": "center"},
+        css_classes=["main-content"]
+    )
+
+    # Update receive_box_data to refresh file list
     def receive_box_data(attr, old, new):
         nonlocal df, csv_path
         if new.get("data") is None or len(new["data"]) == 0:
@@ -170,19 +299,45 @@ def annotate(doc: Document):
         # of the data being passed.
         new["data"].pop()  # remove dummy entry
         save = new["data"].pop()  # second last entry indicates whether to save
-
-        if save:
-            add_annotation(df, new["data"])
+        
+        # Only process note and class if we're saving
+        if save and len(new["data"]) >= 2:  # Check if we have enough data
+            note = new["data"].pop()  # get the note
+            selected_class = new["data"].pop()  # get the anomaly class
+            
+            # Get existing annotations for this file
+            file_base = os.path.basename(csv_path)[:-4]
+            current_annotations = mapping.get(file_base, {
+                "annotations": []
+            })
+            
+            # Add new annotation
+            annotation = {
+                "class": selected_class,
+                "note": note or "",
+                "timestamp": pd.Timestamp.now().isoformat(),
+                "ranges": new["data"]  # Store the actual ranges for this annotation
+            }
+            current_annotations["annotations"].append(annotation)
+            
+            # Save annotations
+            add_annotation(df, new["data"], selected_class)
             csv_loc = os.path.join(output_csv_dir, os.path.basename(csv_path))
             print(f"Saving annotated file to {csv_loc}")
             df.to_csv(csv_loc, index=False)
-
-            # TODO: move to a better way of storing contributor map
-            mapping[os.path.basename(csv_path)[:-4]] = name.value or "Anonymous"
+            
+            # Update mapping
+            mapping[file_base] = current_annotations
+            
+            # Save all mappings to file
             with open(mapping_file, "w") as f:
-                json.dump(mapping, f)
-        else:
-            # user didn't save annotated file, so add the file back to the list
+                json.dump(mapping, f, indent=2)
+
+            print(f"Updated annotations for {file_base}")
+            print(f"Current mapping contains {len(mapping)} files")
+
+        # user didn't save annotated file, so add the file back to the list
+        if not save:
             csv_paths.append(csv_path)
 
         # clear plot
@@ -192,25 +347,35 @@ def annotate(doc: Document):
         # load new data
         df, csv_path = rand_df_from_csv()
         if df is None:
-            # hide everything except title
+            # hide everything except title and file list
             for model in models:
                 model.visible = False
             bsave.visible = False
             bundo.visible = False
-            name.visible = False
+            note.visible = False
+            class_select.visible = False
             tutorial.visible = False
             loader.visible = False
             title.text = "All files have been annotated. Thank you for contributing"
+            
+            # Update file list one last time
+            file_list.children = [file_list_title] + create_file_list()
             return
 
+        # Update filename display
+        filename_display.text = f"Current file: {os.path.basename(csv_path)}"
+        
         plot_df(df, models)
         loader.visible = False
+
+        # Update file list after processing
+        file_list.children = [file_list_title] + create_file_list()
 
     # add listeners
     source.on_change("data", receive_box_data)
     bsave.js_on_click(
         CustomJS(
-            args=dict(loader=loader, source=source),
+            args=dict(loader=loader, source=source, class_select=class_select, name=note),
             code="""
                 if (!window.boxes) {
                     window.boxes = []
@@ -225,6 +390,8 @@ def annotate(doc: Document):
                 )
                 loader.visible = true
                 const data = Array.from(ranges.entries())
+                data.push(class_select.value)  // Add selected class
+                data.push(name.value)  // Add note
                 data.push(true) // for saving
                 data.push(Math.random()) // ensuring on_change gets triggered
                 source.data = {
@@ -243,19 +410,18 @@ def annotate(doc: Document):
         CustomJS(
             args=dict(loader=loader, source=source),
             code="""
-                if (!window.boxes) {
-                    window.boxes = []
-                }
                 loader.visible = true
                 source.data = {
-                    data: [false, Math.random()]
+                    data: [0, false]  // Minimal data: [dummy_value, save_flag]
                 }
                 source.change.emit()
-                window.boxes.forEach(({ fig, box }) => {
-                    fig.remove_layout(box)
-                    box.visible = false
-                })
-                window.boxes = []
+                if (window.boxes) {
+                    window.boxes.forEach(({ fig, box }) => {
+                        fig.remove_layout(box)
+                        box.visible = false
+                    })
+                    window.boxes = []
+                }
             """,
         )
     )
@@ -285,28 +451,21 @@ def annotate(doc: Document):
         # user didn't save annotated file, so add the file back to the list
         csv_paths.append(csv_path)
 
-    doc.add_root(
-        column(
-            column(
-                row(
-                    title,
-                    loader,
-                    name,
-                    bundo,
-                    bskip,
-                    bsave,
-                    sizing_mode="scale_width",
-                    css_classes=["nav"],
-                    stylesheets=[stylesheet],
-                ),
-                tutorial,
-                *models,
-                stylesheets=[stylesheet],
-            ),
-            sizing_mode="scale_width",
-            styles={"align-items": "center"},
-        )
+    # Initialize filename display with first file
+    if df is not None:
+        filename_display.text = f"Current file: {os.path.basename(csv_path)}"
+
+    # Create layout with main content and file list
+    layout = row(
+        main_content,
+        file_list,
+        sizing_mode="stretch_both"
     )
+
+    # Initialize file list
+    file_list.children = [file_list_title] + create_file_list()
+
+    doc.add_root(layout)
     doc.on_session_destroyed(on_session_destroyed)
 
 
@@ -353,8 +512,13 @@ def annotated_files(doc: Document):
     )
     msg = Paragraph(text="No annotated logs yet...", visible=False)
     for name in annotated_files:
+        file_info = mapping.get(name, {"annotations": []})
+        annotations = file_info.get("annotations", [])
+        classes = ", ".join(set(ann["class"] for ann in annotations))
+        label_text = f"{name} (Classes: {classes})"
+        
         li = Button(
-            label=f"{name} (by {mapping.get(name, 'Anonymous')})",
+            label=label_text,
             button_type="light",
             stylesheets=[stylesheet],
         )
@@ -411,6 +575,7 @@ def show_plot(doc: Document):
             styles={"justify-content": "center"},
         )
     )
+
 
 
 server = Server(

@@ -313,14 +313,20 @@ def annotate_plot(df: pd.DataFrame, models: Any):
             models[i].add_layout(box)
 
 
-def add_annotation(df: pd.DataFrame, data: Any):
-    anomaly = np.zeros(df.shape[0], dtype=bool)
-    for name, ranges in data:
-        sub_anomaly = np.zeros(df.shape[0], dtype=bool)
-        for xmin, xmax in ranges:
-            xmin = max(0, xmin)
-            xmax = min(xmax, df.shape[0] - 1)
-            sub_anomaly[xmin : xmax + 1] = True
-            anomaly[xmin : xmax + 1] = True
-        df["anomaly." + name] = sub_anomaly
-    df["anomaly"] = anomaly
+def add_annotation(df: pd.DataFrame, ranges: list, anomaly_class: str):
+    """
+    Add annotation to dataframe
+    
+    Args:
+        df: DataFrame to annotate
+        ranges: List of [start, end] ranges for anomalies
+        anomaly_class: Class label for the anomaly
+    """
+    if "anomaly" not in df.columns:
+        df["anomaly"] = 0
+        df["anomaly_class"] = ""
+
+    for _, range_data in ranges:
+        for start, end in range_data:
+            df.loc[start:end, "anomaly"] = 1
+            df.loc[start:end, "anomaly_class"] = anomaly_class
