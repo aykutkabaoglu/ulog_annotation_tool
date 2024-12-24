@@ -21,10 +21,50 @@ class MissionData(TypedDict):
 
 
 params = {
-    "vehicle_attitude": ["roll", "pitch", "yaw", "roll_d", "pitch_d", "yaw_d", "rollspeed", "pitchspeed", "yawspeed"],
-    "vehicle_attitude_setpoint": ["roll_d", "pitch_d", "yaw_d", "roll_body", "pitch_body", "yaw_body"],
-    "vehicle_local_position": ["x", "y", "z", "yaw", "vx", "vy", "vz", "ax", "ay", "az"],
-    "vehicle_local_position_setpoint": ["x", "y", "z", "yaw", "vx", "vy", "vz"],
+    "vehicle_attitude": [
+        "roll",
+        "pitch", 
+        "yaw",
+        "roll_d",
+        "pitch_d",
+        "yaw_d",
+        "rollspeed",
+        "pitchspeed",
+        "yawspeed"
+    ],
+    "vehicle_attitude_setpoint": [
+        "roll_d",
+        "pitch_d",
+        "yaw_d", 
+        "roll_body",
+        "pitch_body",
+        "yaw_body",
+        "q[0]",
+        "q[1]",
+        "q[2]",
+        "q[3]"
+    ],
+    "vehicle_local_position": [
+        "x",
+        "y", 
+        "z",
+        "yaw",
+        "vx",
+        "vy",
+        "vz",
+        "ax",
+        "ay",
+        "az"
+    ],
+    "vehicle_local_position_setpoint": [
+        "x",
+        "y",
+        "z", 
+        "yaw",
+        "vx",
+        "vy",
+        "vz"
+    ],
     "sensor_combined": [
         "accelerometer_m_s2[0]",
         "accelerometer_m_s2[1]",
@@ -60,15 +100,15 @@ params = {
     ],
     "vehicle_global_position": [
         "alt",
-        # lat,
-        # lon
+        "lat",
+        "lon"
     ],
     # "position_setpoint_triplet": [
     #     "current": [
     #         "alt"
     #     ]
     # ],
-    "actuator_controls": [
+    "actuator_controls_0": [
         "thrust",
         "control[0]",
         "control[1]",
@@ -87,8 +127,107 @@ params = {
         "output[5]",
         "output[6]",
         "output[7]"
+    ],
+    "trajectory_setpoint": [
+        "x",
+        "y",
+        "z",
+        "yaw"
+    ],
+    "vehicle_visual_odometry": [
+        "x",
+        "y",
+        "z",
+        "vx",
+        "vy",
+        "vz",
+        "roll",
+        "pitch",
+        "yaw",
+        "latency"
+    ],
+    "vehicle_magnetometer": [
+        "magnetometer_ga[0]",
+        "magnetometer_ga[1]",
+        "magnetometer_ga[2]",
+    ],
+    "sensor_combined": [
+        "magnetometer_ga[0]",
+        "magnetometer_ga[1]",
+        "magnetometer_ga[2]",
+    ],
+    "rate_ctrl_status": [
+        "rollspeed",
+        "pitchspeed",
+        "yawspeed"
+    ],
+    "battery_status": [
+        "voltage_v",
+        "current_a",
+        "discharged_mah",
+        "remaining"
+    ],
+    "vehicle_rates_setpoint": [
+        "roll",
+        "pitch",
+        "yaw"
+    ],
+    "vehicle_angular_velocity": [
+        "xyz[0]",
+        "xyz[1]",
+        "xyz[2]"
+    ],
+    "vehicle_status": [
+        "arming_state",
+        "vehicle_type",
+        "nav_state",
+        "vehicle_land_detected"
+    ],
+    "manual_control_setpoint": [
+        "x",
+        "y",
+        "r",
+        "z"
+    ],
+    "estimator_status": [
+        "vibe[2]",
+        "time_slip",
+    
+    ],
+    "vehicle_angular_acceleration": [
+        "xyz[0]",
+        "xyz[1]",
+        "xyz[2]"
+    ],
+    "input_rc": [
+        "rssi",
+        "rc_lost"
+    ],
+    "sensor_baro": [
+        "temperature"
+    ],
+    "sensor_accel": [
+        "temperature"
+    ],
+    "cpuload": [
+        "load",
+        "ram_usage"
+    ],
+    "ekf2_innovations": [
+        "mag_innov",
+        "mag_innov_var",
+        "vel_innov",
+        "vel_innov_var",
+        "pos_innov",
+        "pos_innov_var",
+        "hagl_innov",
+        "hagl_innov_var"
+    ],
+    "vehicle_gps_position": [
+        "lat",
+        "lon",
+        "alt"
     ]
-
 }
 
 
@@ -119,38 +258,25 @@ def extract_topics(ulog) -> List[MissionData] | str:
 
     return cols
 
-def compress(col1, col2):
-    # downsample dataset
-    idx = np.searchsorted(col1["timestamp"], col2["timestamp"], side="right")
-    start = 0
-    final = np.zeros_like(col2["timestamp"], dtype=np.float32)
-    for j, i in enumerate(idx):
-        if i > start:
-            final[j] = col1["values"][start:i].mean()
-        else:
-            final[j] = col1["values"][start if start < len(col1["values"]) else -1]
-        start = i
+def subsample(col1, col2):
+    # Linear interpolation between points
+    col1["values"] = np.interp(col2["timestamp"], col1["timestamp"], col1["values"])
     col1["timestamp"] = col2["timestamp"]
-    col1["values"] = final
 
 
-def expand(col1, col2):
-    # upsample dataset
-    idx = np.searchsorted(col2["timestamp"], col1["timestamp"], side="left")
-    final = np.zeros_like(col1["timestamp"], dtype=np.float32)
-    for j, i in enumerate(idx):
-        final[j] = col2["values"][i if i < len(col2["values"]) else -1]
+def upsample(col1, col2):
+    # Linear interpolation to upsample
+    col2["values"] = np.interp(col1["timestamp"], col2["timestamp"], col2["values"])
     col2["timestamp"] = col1["timestamp"]
-    col2["values"] = final
 
 
-def align_cols(cols: List[MissionData], aligning_index) -> None:
+def synchronize_timeseries(cols: List[MissionData], reference_index) -> None:
     # down sample or upsample according to the size of given topic index as aligning_index
     for col in cols:
-        if len(col["timestamp"]) > len(cols[aligning_index]["timestamp"]):
-            compress(col, cols[aligning_index])
+        if len(col["timestamp"]) > len(cols[reference_index]["timestamp"]):
+            subsample(col, cols[reference_index])
         else:
-            expand(cols[aligning_index], col)
+            upsample(cols[reference_index], col)
 
 
 def cols_to_df(cols: List[MissionData]) -> pd.DataFrame:
@@ -196,12 +322,27 @@ for i, ulog_path in enumerate(ulg_paths):
         print(f"{i+1} | Mission mode in file {csv_loc} too short, skipping...")
         continue
 
-    # find the longest/highest frequency topic column
+    # Convert lengths of time to numpy array
     timestamps_len = np.array([len(col["timestamp"]) for col in cols])
-    alignment_column = np.where(timestamps_len == max(timestamps_len))[0][0]
+    
+    # Find longest (highest frequency) series
+    longest_idx = np.argmax(timestamps_len)
+    longest_len = timestamps_len[longest_idx]
+    
+    # Find shortest (lowest frequency) series
+    shortest_idx = np.argmin(timestamps_len)
+    shortest_len = timestamps_len[shortest_idx]
+    
+    # Statistical measures
+    mean_len = np.mean(timestamps_len)
+    median_len = np.median(timestamps_len)
+    
+    # Find the column closest to the median
+    centroid_idx = np.argmin(np.abs(timestamps_len - median_len))
+
     # down or upsample data with the size of alignment column and 
     # change timestamps with the timestamp of the alignment column
-    align_cols(cols, alignment_column)
+    synchronize_timeseries(cols, centroid_idx)
     df = cols_to_df(cols)
 
     # save to csv

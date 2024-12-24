@@ -144,7 +144,83 @@ figures = [
             {"col": "actuator_outputs.output[6]", "label": "Output 6"},
             {"col": "actuator_outputs.output[7]", "label": "Output 7"},
         ],
-    },    
+    },
+    {
+        "title": "RPY Rate",
+        "plots": [
+            {"col": "vehicle_rates_setpoint.roll", "label": "Roll Rate Setpoint"},
+            {"col": "vehicle_rates_setpoint.pitch", "label": "Pitch Rate Setpoint"},
+            {"col": "vehicle_rates_setpoint.yaw", "label": "Yaw Rate Setpoint"},
+            {"col": "rate_ctrl_status.rollspeed_integ", "label": "Roll Speed Integ"},
+            {"col": "rate_ctrl_status.pitchspeed_integ", "label": "Pitch Speed Integ"}, 
+            {"col": "rate_ctrl_status.yawspeed_integ", "label": "Yaw Speed Integ"},
+        ],
+    },
+    {
+        "title": "Vibration",
+        "plots": [
+            {"col": "estimator_status.vibe", "label": "Vibration"},
+        ],
+    },
+    {
+        "title": "Manual Control",
+        "plots": [
+            {"col": "manual_control_setpoint.roll", "label": "Manual Roll"},
+            {"col": "manual_control_setpoint.pitch", "label": "Manual Pitch"},
+            {"col": "manual_control_setpoint.yaw", "label": "Manual Yaw"},
+            {"col": "manual_control_setpoint.throttle", "label": "Manual Throttle"},
+        ],
+    },
+    {
+        "title": "Battery",
+        "plots": [
+            {"col": "battery_status.voltage_v", "label": "Voltage"},
+            {"col": "battery_status.current_a", "label": "Current"},
+            {"col": "battery_status.remaining", "label": "Remaining"},
+            {"col": "battery_status.temperature", "label": "Temperature"},
+        ],
+    },
+    {
+        "title": "Visual Odometry Position",
+        "plots": [
+            {"col": "vehicle_visual_odometry.x", "label": "X"},
+            {"col": "vehicle_visual_odometry.y", "label": "Y"},
+            {"col": "vehicle_visual_odometry.z", "label": "Z"},
+        ],
+    },
+    {
+        "title": "Visual Odometry Velocity",
+        "plots": [
+            {"col": "vehicle_visual_odometry.vx", "label": "Vx"},
+            {"col": "vehicle_visual_odometry.vy", "label": "Vy"},
+            {"col": "vehicle_visual_odometry.vz", "label": "Vz"},
+        ],
+    },
+    {
+        "title": "Visual Odometry Orientation",
+        "plots": [
+            {"col": "vehicle_visual_odometry.roll", "label": "Roll"},
+            {"col": "vehicle_visual_odometry.pitch", "label": "Pitch"},
+            {"col": "vehicle_visual_odometry.yaw", "label": "Yaw"},
+        ],
+    },
+    {
+        "title": "Vehicle Angular Velocity",
+        "plots": [
+            {"col": "vehicle_angular_velocity.x", "label": "X"},
+            {"col": "vehicle_angular_velocity.y", "label": "Y"},
+            {"col": "vehicle_angular_velocity.z", "label": "Z"},
+        ],
+    },
+    {
+        "title": "Trajectory Setpoint",
+        "plots": [
+            {"col": "trajectory_setpoint.x", "label": "X"},
+            {"col": "trajectory_setpoint.y", "label": "Y"},
+            {"col": "trajectory_setpoint.z", "label": "Z"},
+            {"col": "trajectory_setpoint.yaw", "label": "Yaw"},
+        ],
+    }
 ]
 
 
