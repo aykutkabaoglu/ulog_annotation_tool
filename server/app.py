@@ -188,6 +188,31 @@ def annotate(doc: Document):
         .main-content {
             margin-right: 250px;
         }
+
+        .file-list-panel .bk-btn {
+            margin-bottom: 8px;
+            text-align: left;
+            white-space: pre-wrap;
+            height: auto;
+        }
+
+        .file-list-panel .file-labeled.bk-btn {
+            background: #e1f5e1;
+            color: #2c662d;
+        }
+
+        .file-list-panel .file-unlabeled.bk-btn {
+            background: #fff;
+            color: #666;
+        }
+
+        .file-list-panel .bk-btn:hover {
+            filter: brightness(0.95);
+        }
+
+        .file-list-panel .bk-btn.active {
+            border: 2px solid #3498db;
+        }
     """
     )
     title = Div(
@@ -198,7 +223,8 @@ def annotate(doc: Document):
     )
 
     loader = Div(text="", width=20, height=20, visible=False, css_classes=["loader"])
-    bskip = Button(label="Skip", button_type="primary")
+    bprev = Button(label="Previous", button_type="primary")
+    bnext = Button(label="Next", button_type="primary")
     bsave = Button(label="Save", button_type="primary")
     bundo = Button(label="Undo", button_type="primary")
     note = TextInput(title="Note", placeholder="Add a note for this annotation")
@@ -249,30 +275,56 @@ def annotate(doc: Document):
         
         file_items = []
         
-        # Process all files
-        for fname in sorted(all_files):  # Sort files for consistent display
+        for fname in sorted(all_files):
             if fname.endswith('.csv'):
                 is_labeled = fname in labeled_files
                 file_info = mapping.get(fname[:-4], {"annotations": []})
                 annotations = file_info.get("annotations", [])
                 
+                # Create toggle button for each file
+                button_type = "success" if is_labeled else "light"
+                
                 if is_labeled and annotations:
-                    # Show file with its annotations
                     classes = ", ".join(set(ann["class"] for ann in annotations))
                     annotation_count = len(annotations)
-                    text = f"✓ {fname}<br><small>Classes: {classes}<br>Annotations: {annotation_count}</small>"
-                    div = Div(text=text, css_classes=["file-item", "file-labeled"])
+                    label = f"✓ {fname}\nClasses: {classes}\nAnnotations: {annotation_count}"
                 else:
-                    # Show unlabeled file
-                    div = Div(text=f"○ {fname}", css_classes=["file-item", "file-unlabeled"])
-                file_items.append(div)
+                    label = f"○ {fname}"
+                
+                btn = Button(
+                    label=label,
+                    button_type=button_type,
+                    css_classes=["file-item", "file-labeled" if is_labeled else "file-unlabeled"],
+                    width=200
+                )
+                
+                # Add click handler
+                btn.js_on_click(CustomJS(
+                    args=dict(
+                        fname=fname,
+                        source=source,
+                        loader=loader
+                    ),
+                    code="""
+                        loader.visible = true;
+                        source.data = {
+                            'data': ['load_file', fname]
+                        };
+                        source.change.emit();
+                    """
+                ))
+                
+                file_items.append(btn)
         
         return file_items
 
     file_list = column(
         file_list_title,
         *create_file_list(),
-        css_classes=["file-list-panel"]
+        css_classes=["file-list-panel"],
+        width=250,
+        height_policy="fit",
+        sizing_mode="fixed"
     )
 
     # Update the layout structure with more explicit containers
@@ -283,7 +335,8 @@ def annotate(doc: Document):
             note,
             class_select,
             bundo,
-            bskip,
+            bprev,
+            bnext,
             bsave,
             css_classes=["controls"],
             sizing_mode="stretch_width"
@@ -300,102 +353,155 @@ def annotate(doc: Document):
         css_classes=["main-content"]
     )
 
-    # Update receive_box_data to refresh file list
+    # Add new function to handle file navigation
+    def load_file(file_path):
+        nonlocal df, csv_path
+        
+        if file_path and os.path.exists(file_path):
+            # Load the new file
+            csv_path = file_path
+            df = pd.read_csv(csv_path)
+            
+            # Clear existing plots
+            for model in models:
+                model.renderers = []
+                model.legend.items = []
+            
+            # Update filename display
+            filename_display.text = f"Current file: {os.path.basename(csv_path)}"
+            
+            # Plot new data
+            plot_df(df, models)
+            
+            # Update file list to reflect current selection
+            file_list.children = [file_list_title] + create_file_list()
+            return True
+        return False
+
+    # Add click handlers for next/previous buttons
+    def get_file_list():
+        return sorted([os.path.join(csv_dir, f) for f in os.listdir(csv_dir) if f.endswith('.csv')])
+
+    def on_next_click():
+        files = get_file_list()
+        if not files:
+            return
+        
+        try:
+            current_idx = files.index(csv_path)
+            next_idx = (current_idx + 1) % len(files)
+            load_file(files[next_idx])
+        except ValueError:
+            # If current file not found in list, load first file
+            load_file(files[0])
+
+    def on_prev_click():
+        files = get_file_list()
+        if not files:
+            return
+        
+        try:
+            current_idx = files.index(csv_path)
+            prev_idx = (current_idx - 1) % len(files)
+            load_file(files[prev_idx])
+        except ValueError:
+            # If current file not found in list, load last file
+            load_file(files[-1])
+
+    # Add the button click handlers
+    bnext.on_click(on_next_click)
+    bprev.on_click(on_prev_click)
+
+    # Update the save button's CustomJS code
+    bsave.js_on_click(
+        CustomJS(
+            args=dict(loader=loader, source=source, class_select=class_select, name=note),
+            code="""
+                if (!window.boxes) {
+                    window.boxes = []
+                }
+                const ranges = new Map()
+                boxes.forEach(
+                    ({ name, box }) => {
+                        if (!ranges.has(name)) ranges.set(name, [])
+                        const range = ranges.get(name)
+                        range.push([Math.round(box.left), Math.round(box.right)].sort((a, b) => a - b))
+                    }
+                )
+                loader.visible = true
+                const data = Array.from(ranges.entries())
+                data.push(class_select.value)  // Add selected class
+                data.push(name.value)  // Add note
+                data.push(true) // for saving
+                data.push(Math.random()) // ensuring on_change gets triggered
+                source.data = {
+                    data
+                }
+                source.change.emit()
+                window.boxes.forEach(({ fig, box }) => {
+                    fig.remove_layout(box)
+                    box.visible = false
+                })
+                window.boxes = []
+            """,
+        )
+    )
+
+    # Update receive_box_data to handle only save and load_file actions
     def receive_box_data(attr, old, new):
         nonlocal df, csv_path
         if new.get("data") is None or len(new["data"]) == 0:
             return
+
+        action = new["data"][0]
+        
+        if action == "load_file":
+            # Load the selected file
+            filename = new["data"][1]
+            new_path = os.path.join(csv_dir, filename)
+            load_file(new_path)
+            loader.visible = False
+            return
+        
+        # Handle save action
         print(f"Received box coordinates")
         print(new["data"])
-        # TODO: find a better way of passing data from js to python
-        # source on_change event is only triggered when a non
-        # empty list is passed. If a log file does not contain anomalies
-        # passing empty list will not trigger the on_change event. In order
-        # to bypass this edge case a dummy entry is always added to the end
-        # of the data being passed.
         new["data"].pop()  # remove dummy entry
         save = new["data"].pop()  # second last entry indicates whether to save
         
-        # Only process note and class if we're saving
-        if save and len(new["data"]) >= 2:  # Check if we have enough data
-            note = new["data"].pop()  # get the note
-            selected_class = new["data"].pop()  # get the anomaly class
+        if save and len(new["data"]) >= 2:
+            note = new["data"].pop()
+            selected_class = new["data"].pop()
             
-            # Get existing annotations for this file
             file_base = os.path.basename(csv_path)[:-4]
             current_annotations = mapping.get(file_base, {
                 "annotations": []
             })
             
-            # Add new annotation
             annotation = {
                 "class": selected_class,
                 "note": note or "",
                 "timestamp": pd.Timestamp.now().isoformat(),
-                "ranges": new["data"]  # Store the actual ranges for this annotation
+                "ranges": new["data"]
             }
             current_annotations["annotations"].append(annotation)
             
-            # Save annotations
             add_annotation(df, new["data"], selected_class)
             csv_loc = os.path.join(output_csv_dir, os.path.basename(csv_path))
             print(f"Saving annotated file to {csv_loc}")
             df.to_csv(csv_loc, index=False)
             
-            # Update mapping
             mapping[file_base] = current_annotations
-            
-            # Save all mappings to file
             with open(mapping_file, "w") as f:
                 json.dump(mapping, f, indent=2)
 
             print(f"Updated annotations for {file_base}")
             print(f"Current mapping contains {len(mapping)} files")
-
-        # user didn't save annotated file, so add the file back to the list
-        if not save:
-            if csv_path not in csv_paths:  # Only add if not already in the list
-                csv_paths.append(csv_path)
-
-        # clear plot
-        for model in models:
-            model.renderers = []
-            model.legend.items = []
-
-        # Store current path before getting new one
-        current_path = csv_path
-
-        # load new data
-        df, csv_path = rand_df_from_csv()
-        if df is None:
-            # If we skipped the last file, add it back to the list
-            if not save and current_path not in csv_paths:
-                csv_paths.append(current_path)
-                # Try getting a new file again
-                df, csv_path = rand_df_from_csv()
-
-        if df is None:
-            # hide everything except title and file list
-            for model in models:
-                model.visible = False
-            bsave.visible = False
-            bundo.visible = False
-            note.visible = False
-            class_select.visible = False
-            loader.visible = False
-            title.text = "All files have been annotated. Thank you for contributing"
             
-            # Update file list one last time
-            file_list.children = [file_list_title] + create_file_list()
-            return
-
-        # Update filename display
-        filename_display.text = f"Current file: {os.path.basename(csv_path)}"
+            # After saving, automatically move to next file
+            on_next_click()
         
-        plot_df(df, models)
         loader.visible = False
-
-        # Update file list after processing
         file_list.children = [file_list_title] + create_file_list()
 
     # add listeners
@@ -430,25 +536,6 @@ def annotate(doc: Document):
                     box.visible = false
                 })
                 window.boxes = []
-            """,
-        )
-    )
-    bskip.js_on_click(
-        CustomJS(
-            args=dict(loader=loader, source=source),
-            code="""
-                loader.visible = true
-                source.data = {
-                    data: [0, false]  // Minimal data: [dummy_value, save_flag]
-                }
-                source.change.emit()
-                if (window.boxes) {
-                    window.boxes.forEach(({ fig, box }) => {
-                        fig.remove_layout(box)
-                        box.visible = false
-                    })
-                    window.boxes = []
-                }
             """,
         )
     )
