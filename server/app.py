@@ -70,9 +70,43 @@ def annotate(doc: Document):
         .title {
           font-size: 1.8rem;
           font-weight: bold;
-          margin-left: 30px;
+          margin: 10px 30px;
           color: #3498db;
-          flex-grow: 1;
+          display: block;
+          width: 100%;
+        }
+
+        .nav {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 10px 0;
+            margin-bottom: 10px;
+            background: #fff;
+            width: 100%;
+            border-bottom: 1px solid #eee;
+        }
+
+        .nav .bk-row {
+            margin-bottom: 10px;
+        }
+
+        .filename {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #666;
+            margin: 10px 30px;
+            display: block;
+            width: 100%;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 30px;
+            background: #fff;
+            width: 100%;
         }
 
         .loader {
@@ -103,15 +137,6 @@ def annotate(doc: Document):
                 box-shadow: none;
                 outline: none;
             }
-        }
-
-        .nav {
-            align-items: center;
-            justify-content: right;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            background: #fff;
         }
 
         @keyframes spin {
@@ -169,15 +194,14 @@ def annotate(doc: Document):
         text="Annotate anomalies in log file",
         visible=True,
         css_classes=["title"],
+        width_policy="max"
     )
-    tutorial = Button(
-        label="How to annotate?", button_type="light", stylesheets=[stylesheet]
-    )
+
     loader = Div(text="", width=20, height=20, visible=False, css_classes=["loader"])
     bskip = Button(label="Skip", button_type="primary")
     bsave = Button(label="Save", button_type="primary")
     bundo = Button(label="Undo", button_type="primary")
-    note = TextInput(placeholder="Add a note for this annotation")
+    note = TextInput(title="Note", placeholder="Add a note for this annotation")
 
     # Source to receive value passed by button
     source = ColumnDataSource(data=dict(data=[]))
@@ -198,7 +222,8 @@ def annotate(doc: Document):
     models = plot_df(df)
 
     # Add class selector
-    anomaly_classes = ['Class A', 'Class B', 'Class C']  # Customize your classes
+    anomaly_classes = ['Mechanical', 'Altitude', 'External Position', 
+                       'Heading', 'Global Position', 'Electrical']  # Customize your classes    
     class_select = Select(
         title="Anomaly Class:",
         value=anomaly_classes[0],
@@ -208,12 +233,8 @@ def annotate(doc: Document):
     # Add filename display
     filename_display = Div(
         text="Current file: None",
-        styles={
-            "font-size": "1.2rem",
-            "font-weight": "bold",
-            "margin-left": "30px",
-            "color": "#666"
-        }
+        css_classes=["filename"],
+        width_policy="max"
     )
 
     # Create file list panel
@@ -254,32 +275,27 @@ def annotate(doc: Document):
         css_classes=["file-list-panel"]
     )
 
-    # Update the layout to include the file list panel
-    main_content = column(
-        column(
-            row(
-                title,
-                filename_display,
-                loader,
-                sizing_mode="scale_width",
-                css_classes=["nav"],
-                stylesheets=[stylesheet],
-            ),
-            row(
-                note,
-                class_select,
-                bundo,
-                bskip,
-                bsave,
-                sizing_mode="scale_width",
-                css_classes=["nav"],
-                stylesheets=[stylesheet],
-            ),
-            tutorial,
-            *models,
-            stylesheets=[stylesheet],
+    # Update the layout structure with more explicit containers
+    header = column(
+        row(title, sizing_mode="stretch_width"),
+        row(filename_display, sizing_mode="stretch_width"),
+        row(
+            note,
+            class_select,
+            bundo,
+            bskip,
+            bsave,
+            css_classes=["controls"],
+            sizing_mode="stretch_width"
         ),
-        sizing_mode="scale_width",
+        css_classes=["nav"],
+        sizing_mode="stretch_width"
+    )
+
+    main_content = column(
+        header,
+        *models,
+        sizing_mode="stretch_width",
         styles={"align-items": "center"},
         css_classes=["main-content"]
     )
@@ -338,14 +354,26 @@ def annotate(doc: Document):
 
         # user didn't save annotated file, so add the file back to the list
         if not save:
-            csv_paths.append(csv_path)
+            if csv_path not in csv_paths:  # Only add if not already in the list
+                csv_paths.append(csv_path)
 
         # clear plot
         for model in models:
             model.renderers = []
             model.legend.items = []
+
+        # Store current path before getting new one
+        current_path = csv_path
+
         # load new data
         df, csv_path = rand_df_from_csv()
+        if df is None:
+            # If we skipped the last file, add it back to the list
+            if not save and current_path not in csv_paths:
+                csv_paths.append(current_path)
+                # Try getting a new file again
+                df, csv_path = rand_df_from_csv()
+
         if df is None:
             # hide everything except title and file list
             for model in models:
@@ -354,7 +382,6 @@ def annotate(doc: Document):
             bundo.visible = False
             note.visible = False
             class_select.visible = False
-            tutorial.visible = False
             loader.visible = False
             title.text = "All files have been annotated. Thank you for contributing"
             
@@ -432,14 +459,6 @@ def annotate(doc: Document):
                 if (!window.boxes || !window.boxes.length) return
                 const { name, box } = window.boxes.pop()
                 box.visible = false
-            """,
-        )
-    )
-    tutorial.js_on_click(
-        CustomJS(
-            args=dict(),
-            code="""
-                window.open("https://youtu.be/N7PXKv16L4A", '_blank')
             """,
         )
     )
