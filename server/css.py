@@ -3,15 +3,20 @@ from bokeh.models import InlineStyleSheet
 
 annotated_files_stylesheet = InlineStyleSheet(
         css="""
+        body {
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+
         .title {
           font-size: 1.8rem;
           font-weight: bold;
-          color: #3498db;
+          color: #5dade2;
         }
 
         .bk-btn-group .bk-btn {
             font-size: 1rem;
-            color: #222;
+            color: #e0e0e0;
             display: list-item;
             padding: 0;
             border: 0;
@@ -19,14 +24,15 @@ annotated_files_stylesheet = InlineStyleSheet(
             list-style-type: disc;
             outline: none;
             text-decoration: underline;
+            background: transparent;
 
             &:hover {
                 cursor: pointer;
-                background: #fff;
+                background: #404040;
             }
             &:active {
                 cursor: pointer;
-                background: #fff;
+                background: #404040;
                 box-shadow: none;
                 outline: none;
             }
@@ -37,11 +43,32 @@ annotated_files_stylesheet = InlineStyleSheet(
 
 annotate_stylesheet = InlineStyleSheet(
         css="""
+        /* Global styles for the entire page */
+        :root {
+            background: #1a1a1a !important;
+        }
+        
+        body {
+            background: #1a1a1a !important;
+            color: #e0e0e0;
+        }
+
+        /* Main content area */
+        .main-content {
+            background: #1a1a1a !important;
+            min-height: 100vh;
+        }
+
+        /* Ensure Bokeh's container is also dark */
+        .bk-root {
+            background: #1a1a1a !important;
+        }
+
         .title {
           font-size: 1.8rem;
           font-weight: bold;
           margin: 10px 30px;
-          color: #3498db;
+          color: #5dade2;
           display: block;
           width: 100%;
         }
@@ -52,19 +79,15 @@ annotate_stylesheet = InlineStyleSheet(
             gap: 15px;
             padding: 10px 0;
             margin-bottom: 10px;
-            background: #fff;
+            background: #2d2d2d;
             width: 100%;
-            border-bottom: 1px solid #eee;
-        }
-
-        .nav .bk-row {
-            margin-bottom: 10px;
+            border-bottom: 1px solid #404040;
         }
 
         .filename {
             font-size: 1.2rem;
             font-weight: bold;
-            color: #666;
+            color: #e0e0e0;
             margin: 10px 30px;
             display: block;
             width: 100%;
@@ -75,55 +98,27 @@ annotate_stylesheet = InlineStyleSheet(
             align-items: center;
             gap: 10px;
             padding: 10px 30px;
-            background: #fff;
+            background: #2d2d2d;
             width: 100%;
         }
 
         .loader {
-          border: 4px solid #e3e3e3;
-          border-top: 4px solid #3498db;
+          border: 4px solid #404040;
+          border-top: 4px solid #5dade2;
           border-radius: 50%;
-          width: 20px;
-          height: 20px;
+          width: 20px !important;
+          height: 20px !important;
           animation: spin 1s linear infinite;
-        }
-
-        .bk-btn-group .bk-btn {
-            font-size: 1rem;
-            color: #222;
-            padding: 0;
-            border: 0;
-            margin-left: 30px;
-            outline: none;
-            text-decoration: underline;
-
-            &:hover {
-                cursor: pointer;
-                background: #fff;
-            }
-            &:active {
-                cursor: pointer;
-                background: #fff;
-                box-shadow: none;
-                outline: none;
-            }
-        }
-
-        @keyframes spin {
-          0% {
-            transform: rotate(0deg);
-          }
-
-          100% {
-            transform: rotate(360deg);
-          }
+          display: inline-block;
+          visibility: visible !important;
+          margin: 0 10px;
         }
 
         .file-list-panel {
             width: 250px;
-            background: #f5f5f5;
+            background: #2d2d2d;
             padding: 15px;
-            border-left: 1px solid #ddd;
+            border-left: 1px solid #404040;
             height: 100vh;
             overflow-y: auto;
             position: fixed;
@@ -135,7 +130,7 @@ annotate_stylesheet = InlineStyleSheet(
             font-size: 1.2rem;
             font-weight: bold;
             margin-bottom: 15px;
-            color: #3498db;
+            color: #5dade2;
         }
 
         .file-item {
@@ -146,17 +141,13 @@ annotate_stylesheet = InlineStyleSheet(
         }
 
         .file-labeled {
-            background: #e1f5e1;
-            color: #2c662d;
+            background: #1e4620;
+            color: #a8e6a8;
         }
 
         .file-unlabeled {
-            background: #fff;
-            color: #666;
-        }
-
-        .main-content {
-            margin-right: 250px;
+            background: #2d2d2d;
+            color: #e0e0e0;
         }
 
         .file-list-panel .bk-btn {
@@ -164,24 +155,54 @@ annotate_stylesheet = InlineStyleSheet(
             text-align: left;
             white-space: pre-wrap;
             height: auto;
+            background: #2d2d2d;
+            color: #e0e0e0;
+            border: 1px solid #404040;
         }
 
         .file-list-panel .file-labeled.bk-btn {
-            background: #e1f5e1;
-            color: #2c662d;
+            background: #1e4620;
+            color: #a8e6a8;
         }
 
         .file-list-panel .file-unlabeled.bk-btn {
-            background: #fff;
-            color: #666;
+            background: #2d2d2d;
+            color: #e0e0e0;
         }
 
         .file-list-panel .bk-btn:hover {
-            filter: brightness(0.95);
+            background: #404040;
         }
 
         .file-list-panel .bk-btn.active {
-            border: 2px solid #3498db;
+            border: 2px solid #5dade2;
+        }
+
+        /* Style for input elements */
+        input, select {
+            background: #2d2d2d !important;
+            color: #e0e0e0 !important;
+            border: 1px solid #404040 !important;
+        }
+
+        /* Style for buttons */
+        .bk-btn {
+            background: #2d2d2d !important;
+            color: #e0e0e0 !important;
+            border: 1px solid #404040 !important;
+        }
+
+        .bk-btn:hover {
+            background: #404040 !important;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
         }
     """
     )

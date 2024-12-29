@@ -7,14 +7,13 @@ from tornado.web import RequestHandler
 from bokeh.layouts import row, column
 from bokeh.plotting import Document
 from bokeh.server.server import Server
-from plotting import add_annotation, annotate_plot, plot_df
+from plotting import add_annotation, plot_df
 from bokeh.models import (
     CustomJS,
     ColumnDataSource,
     Button,
     Div,
     TextInput,
-    Paragraph,
     Select,
 )
 
@@ -47,23 +46,9 @@ csv_paths = [
 ]
 
 
-def rand_df_from_csv() -> Tuple[Optional[pd.DataFrame], str]:
-    if len(csv_paths) == 0:
-        return None, ""
-    rand_idx = np.random.randint(len(csv_paths))
-    # remove from list
-    csv_path = csv_paths.pop(rand_idx)
-    df = pd.read_csv(csv_path)
-    print(f"Opened {csv_path} for annotation")
-    return df, csv_path
-
-
-class IndexHandler(RequestHandler):
-    def get(self):
-        self.write("Here have a cookie, 🍪")
-
-
-def annotate(doc: Document):
+def main_app(doc: Document):
+    bokeh_models = []  # Initialize empty list for models
+    
     title = Div(
         text="Annotate anomalies in log file",
         visible=True,
@@ -71,7 +56,14 @@ def annotate(doc: Document):
         width_policy="max"
     )
 
-    loader = Div(text="", width=20, height=20, visible=False, css_classes=["loader"])
+    loader = Div(
+        text="<div></div>",  # Empty div that will get the loader style
+        width=20,
+        height=20,
+        visible=True,  # Set to True initially
+        css_classes=["loader"],
+        styles={"display": "inline-block"}
+    )
     bprev = Button(label="Previous", button_type="primary")
     bnext = Button(label="Next", button_type="primary")
     bsave = Button(label="Save", button_type="primary")
@@ -80,21 +72,6 @@ def annotate(doc: Document):
 
     # Source to receive value passed by button
     source = ColumnDataSource(data=dict(data=[]))
-
-    df, csv_path = rand_df_from_csv()
-    if df is None:
-        title.text = "All files have been annotated. Thank you for contributing"
-        title.styles = {"flex-grow": "0"}
-        doc.add_root(
-            row(
-                title,
-                sizing_mode="scale_width",
-                styles={"justify-content": "center"},
-                stylesheets=[annotate_stylesheet],
-            )
-        )
-        return
-    models = plot_df(df)
 
     # Add class selector
     anomaly_classes = ['Mechanical', 'Altitude', 'External Position', 
@@ -116,6 +93,32 @@ def annotate(doc: Document):
     file_list_title = Div(
         text="Files in Directory",
         css_classes=["file-list-title"]
+    )
+
+    # Update the layout structure with more explicit containers
+    header = column(
+        row(title, sizing_mode="stretch_width"),
+        row(filename_display, sizing_mode="stretch_width"),
+        row(
+            note,
+            class_select,
+            bundo,
+            bprev,
+            bnext,
+            bsave,
+            css_classes=["controls"],
+            sizing_mode="stretch_width"
+        ),
+        css_classes=["nav"],
+        sizing_mode="stretch_width"
+    )
+
+    main_content = column(
+        header,
+        *bokeh_models,
+        sizing_mode="stretch_width",
+        styles={"align-items": "center"},
+        css_classes=["main-content"]
     )
 
     def create_file_list():
@@ -167,60 +170,29 @@ def annotate(doc: Document):
         
         return file_items
 
-    file_list = column(
-        file_list_title,
-        *create_file_list(),
-        css_classes=["file-list-panel"],
-        width=250,
-        height_policy="fit",
-        sizing_mode="fixed"
-    )
-
-    # Update the layout structure with more explicit containers
-    header = column(
-        row(title, sizing_mode="stretch_width"),
-        row(filename_display, sizing_mode="stretch_width"),
-        row(
-            note,
-            class_select,
-            bundo,
-            bprev,
-            bnext,
-            bsave,
-            css_classes=["controls"],
-            sizing_mode="stretch_width"
-        ),
-        css_classes=["nav"],
-        sizing_mode="stretch_width"
-    )
-
-    main_content = column(
-        header,
-        *models,
-        sizing_mode="stretch_width",
-        styles={"align-items": "center"},
-        css_classes=["main-content"]
-    )
 
     # Add new function to handle file navigation
     def load_file(file_path):
-        nonlocal df, csv_path
-        
+        global csv_path, df
+        nonlocal bokeh_models, main_content
         if file_path and os.path.exists(file_path):
             # Load the new file
             csv_path = file_path
             df = pd.read_csv(csv_path)
             
-            # Clear existing plots
-            for model in models:
-                model.renderers = []
-                model.legend.items = []
-            
             # Update filename display
             filename_display.text = f"Current file: {os.path.basename(csv_path)}"
             
-            # Plot new data
-            plot_df(df, models)
+            # Create new bokeh models and update layout
+            if not bokeh_models:
+                # Only create models the first time
+                bokeh_models = plot_df(df)
+            else:
+                # Update existing models with new data
+                plot_df(df, bokeh_models)
+            
+            # Update main_content with models
+            main_content.children = [header] + bokeh_models
             
             # Update file list to reflect current selection
             file_list.children = [file_list_title] + create_file_list()
@@ -256,6 +228,102 @@ def annotate(doc: Document):
         except ValueError:
             # If current file not found in list, load last file
             load_file(files[-1])
+
+    # Update receive_box_data to handle only save and load_file actions
+    def receive_box_data(attr, old, new):
+        if new.get("data") is None or len(new["data"]) == 0:
+            return
+
+        action = new["data"][0]
+        
+        if action == "load_file":
+            # Load the selected file
+            filename = new["data"][1]
+            new_path = os.path.join(csv_dir, filename)
+            loader.visible = True
+            print(f"Loading file: {new_path}")
+
+            # Use the existing load_file function to handle file loading, plotting, and annotations
+            load_file(new_path)
+            
+            loader.visible = False
+            return
+        
+        # Handle save action
+        print(f"Received box coordinates")
+        print(new["data"])
+        new["data"].pop()  # remove dummy entry
+        save = new["data"].pop()  # second last entry indicates whether to save
+        
+        if save and len(new["data"]) >= 2:
+            note = new["data"].pop()
+            selected_class = new["data"].pop()
+            
+            file_base = os.path.basename(csv_path)[:-4]
+            current_annotations = mapping.get(file_base, {
+                "annotations": []
+            })
+            
+            # Print the data being saved
+            print(f"Saving annotation:")  # Debug print
+            print(f"Class: {selected_class}")  # Debug print
+            print(f"Ranges: {new['data']}")  # Debug print
+            
+            annotation = {
+                "class": selected_class,
+                "note": note or "",
+                "timestamp": pd.Timestamp.now().isoformat(),
+                "ranges": new["data"]
+            }
+            current_annotations["annotations"].append(annotation)
+            
+            # Save annotations
+            add_annotation(df, new["data"], selected_class)
+            
+            csv_loc = os.path.join(output_csv_dir, os.path.basename(csv_path))
+            print(f"Saving annotated file to {csv_loc}")
+            df.to_csv(csv_loc, index=False)
+            
+            # Update mapping
+            mapping[file_base] = current_annotations
+            
+            # Save all mappings to file
+            with open(mapping_file, "w") as f:
+                json.dump(mapping, f, indent=2)
+
+            print(f"Updated annotations for {file_base}")
+            print(f"Current mapping contains {len(mapping)} files")
+            
+            # After saving, automatically move to next file
+            on_next_click()
+        
+        loader.visible = False
+        file_list.children = [file_list_title] + create_file_list()
+
+    def on_session_destroyed(session_context):
+        csv_loc = os.path.join(output_csv_dir, os.path.basename(csv_path))
+        if os.path.exists(csv_loc):
+            return
+        # user didn't save annotated file, so add the file back to the list
+        csv_paths.append(csv_path)
+
+
+
+    file_list = column(
+        file_list_title,
+        *create_file_list(),
+        css_classes=["file-list-panel"],
+        width=250,
+        height_policy="fit",
+        sizing_mode="fixed"
+    )
+
+    # Update file list to reflect current selection
+    file_list.children = [file_list_title] + create_file_list()
+    # Initialize with first file
+    load_file(csv_paths[0])
+
+    ##### PAGE LAYOUT #####
 
     # Add the button click handlers
     bnext.on_click(on_next_click)
@@ -295,63 +363,6 @@ def annotate(doc: Document):
             """,
         )
     )
-
-    # Update receive_box_data to handle only save and load_file actions
-    def receive_box_data(attr, old, new):
-        nonlocal df, csv_path
-        if new.get("data") is None or len(new["data"]) == 0:
-            return
-
-        action = new["data"][0]
-        
-        if action == "load_file":
-            # Load the selected file
-            filename = new["data"][1]
-            new_path = os.path.join(csv_dir, filename)
-            load_file(new_path)
-            loader.visible = False
-            return
-        
-        # Handle save action
-        print(f"Received box coordinates")
-        print(new["data"])
-        new["data"].pop()  # remove dummy entry
-        save = new["data"].pop()  # second last entry indicates whether to save
-        
-        if save and len(new["data"]) >= 2:
-            note = new["data"].pop()
-            selected_class = new["data"].pop()
-            
-            file_base = os.path.basename(csv_path)[:-4]
-            current_annotations = mapping.get(file_base, {
-                "annotations": []
-            })
-            
-            annotation = {
-                "class": selected_class,
-                "note": note or "",
-                "timestamp": pd.Timestamp.now().isoformat(),
-                "ranges": new["data"]
-            }
-            current_annotations["annotations"].append(annotation)
-            
-            add_annotation(df, new["data"], selected_class)
-            csv_loc = os.path.join(output_csv_dir, os.path.basename(csv_path))
-            print(f"Saving annotated file to {csv_loc}")
-            df.to_csv(csv_loc, index=False)
-            
-            mapping[file_base] = current_annotations
-            with open(mapping_file, "w") as f:
-                json.dump(mapping, f, indent=2)
-
-            print(f"Updated annotations for {file_base}")
-            print(f"Current mapping contains {len(mapping)} files")
-            
-            # After saving, automatically move to next file
-            on_next_click()
-        
-        loader.visible = False
-        file_list.children = [file_list_title] + create_file_list()
 
     # add listeners
     source.on_change("data", receive_box_data)
@@ -399,115 +410,19 @@ def annotate(doc: Document):
         )
     )
 
-    def on_session_destroyed(session_context):
-        csv_loc = os.path.join(output_csv_dir, os.path.basename(csv_path))
-        if os.path.exists(csv_loc):
-            return
-        # user didn't save annotated file, so add the file back to the list
-        csv_paths.append(csv_path)
-
-    # Initialize filename display with first file
-    if df is not None:
-        filename_display.text = f"Current file: {os.path.basename(csv_path)}"
 
     # Create layout with main content and file list
     layout = row(
         main_content,
         file_list,
-        sizing_mode="stretch_both"
+        sizing_mode="stretch_both",
+        styles={"background-color": "#7B7B7B"},
     )
-
-    # Initialize file list
-    file_list.children = [file_list_title] + create_file_list()
 
     doc.add_root(layout)
     doc.on_session_destroyed(on_session_destroyed)
 
 
-def annotated_files(doc: Document):
-    annotated_files = [
-        name[:-4] for name in os.listdir(output_csv_dir) if name.endswith(".csv")
-    ]
-    models = []
-    s
-    title = Div(
-        text="Annotated files",
-        css_classes=["title"],
-    )
-    msg = Paragraph(text="No annotated logs yet...", visible=False)
-    for name in annotated_files:
-        file_info = mapping.get(name, {"annotations": []})
-        annotations = file_info.get("annotations", [])
-        classes = ", ".join(set(ann["class"] for ann in annotations))
-        label_text = f"{name} (Classes: {classes})"
-        
-        li = Button(
-            label=label_text,
-            button_type="light",
-            stylesheets=[annotated_files_stylesheet],
-        )
-        li.js_on_click(
-            CustomJS(
-                args=dict(name=name),
-                code="""
-                    window.location="/plot?id=" + name
-                """,
-            )
-        )
-        models.append(li)
-
-    if len(models) == 0:
-        msg.visible = True
-    doc.add_root(
-        column(
-            title,
-            column(msg, *models),
-            sizing_mode="scale_width",
-            styles={"align-items": "center"},
-            stylesheets=[annotated_files_stylesheet],
-        )
-    )
-
-
-def show_plot(doc: Document):
-    args = doc.session_context.request.arguments
-    id = args.get("id", [b""])[0].decode()
-
-    csv_path = os.path.join(output_csv_dir, id + ".csv")
-    if not os.path.exists(csv_path):
-        msg = Div(
-            text="Not found",
-            visible=True,
-            styles={
-                "font-size": "1.8rem",
-                "font-weight": "bold",
-                "color": "#3498db",
-                "margin": "auto",
-            },
-        )
-        doc.add_root(msg)
-        return
-
-    df = pd.read_csv(csv_path)
-    models = plot_df(df, highlight=False)
-    annotate_plot(df, models)
-
-    doc.add_root(
-        row(
-            column(*models),
-            sizing_mode="scale_width",
-            styles={"justify-content": "center"},
-        )
-    )
-
-
-
-server = Server(
-    {"/": annotate, "/files": annotated_files, "/plot": show_plot},
-    num_procs=1,
-    extra_patterns=[("/cookie", IndexHandler)],
-)
-server.start()
 
 if __name__ == "__main__":
     from bokeh.util.browser import view
@@ -516,5 +431,9 @@ if __name__ == "__main__":
         "Opening Tornado app with embedded Bokeh application on http://localhost:5006/"
     )
 
+    server = Server(
+    {"/": main_app},
+    num_procs=1
+    )
     server.io_loop.add_callback(view, "http://localhost:5006/")
     server.io_loop.start()

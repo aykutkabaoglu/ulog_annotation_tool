@@ -223,16 +223,35 @@ figures = [
     }
 ]
 
-
+# Plot the dataframe with the given models, highlight the anomalies and return the models
 def plot_df(df: pd.DataFrame, models: Model = None, highlight: bool = True):
     alpha = 0.7
     colors = itertools.cycle(palette)
 
     for i, f in enumerate(figures):
         if not models:
-            f["model"] = figure(width=1000, height=500, title=f["title"])
+            f["model"] = figure(
+                width=1000, 
+                height=500, 
+                title=f["title"],
+                background_fill_color='#1a1a1a',
+                border_fill_color='#1a1a1a',
+                outline_line_color='#404040'
+            )
+            # Set text colors
+            f["model"].title.text_color = "#e0e0e0"
+            f["model"].xaxis.axis_label_text_color = "#e0e0e0"
+            f["model"].yaxis.axis_label_text_color = "#e0e0e0"
+            f["model"].xaxis.major_label_text_color = "#e0e0e0"
+            f["model"].yaxis.major_label_text_color = "#e0e0e0"
+            # Set grid colors
+            f["model"].grid.grid_line_color = "#404040"
+            f["model"].grid.grid_line_alpha = 0.3
         else:
+            # Add annotations to the same models
+            annotate_plot(df, models)
             f["model"] = models[i]
+
         for p in f["plots"]:
             try:
                 y = df[p["col"]]
@@ -244,13 +263,13 @@ def plot_df(df: pd.DataFrame, models: Model = None, highlight: bool = True):
                     legend_label=p["label"],
                     line_width=2,
                     alpha=alpha,
-                )
+                )                  
             except:
                 print("Couldn't find", p["col"])
-        if not models:
-            f["model"].legend.click_policy = "hide"
-            if highlight:
-                enable_highlight(f["model"], figname=f["title"])
+
+        f["model"].legend.click_policy = "hide"
+        if highlight:
+            enable_highlight(f["model"], figname=f["title"])
 
     return [f["model"] for f in figures]
 
