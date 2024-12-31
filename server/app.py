@@ -7,7 +7,7 @@ from tornado.web import RequestHandler
 from bokeh.layouts import row, column
 from bokeh.plotting import Document
 from bokeh.server.server import Server
-from plotting import add_annotation, plot_df
+from plotting import plot_df
 from bokeh.models import (
     CustomJS,
     ColumnDataSource,
@@ -95,7 +95,10 @@ def main_app(doc: Document):
         css_classes=["file-list-title"]
     )
 
-    # Update the layout structure with more explicit containers
+    # Add clear button in the header section where other buttons are defined
+    bclear = Button(label="Clear", button_type="danger")
+
+    # Update the header layout to include the clear button
     header = column(
         row(title, sizing_mode="stretch_width"),
         row(filename_display, sizing_mode="stretch_width"),
@@ -106,6 +109,7 @@ def main_app(doc: Document):
             bprev,
             bnext,
             bsave,
+            bclear,  # Add clear button
             css_classes=["controls"],
             sizing_mode="stretch_width"
         ),
@@ -183,19 +187,12 @@ def main_app(doc: Document):
             # Update filename display
             filename_display.text = f"Current file: {os.path.basename(csv_path)}"
             
-            # Create new bokeh models and update layout
-            if not bokeh_models:
-                # Only create models the first time
-                bokeh_models = plot_df(df)
-            else:
-                # Update existing models with new data
-                plot_df(df, bokeh_models)
+            # Create new bokeh models or update existing models with new data
+            bokeh_models = plot_df(df, mapping, os.path.basename(csv_path))
             
             # Update main_content with models
             main_content.children = [header] + bokeh_models
             
-            # Update file list to reflect current selection
-            file_list.children = [file_list_title] + create_file_list()
             return True
         return False
 
@@ -203,11 +200,14 @@ def main_app(doc: Document):
     def get_file_list():
         return sorted([os.path.join(csv_dir, f) for f in os.listdir(csv_dir) if f.endswith('.csv')])
 
+    def update_file_list():
+        file_list.children = [file_list_title] + create_file_list()
+
     def on_next_click():
         files = get_file_list()
         if not files:
             return
-        
+        update_file_list()
         try:
             current_idx = files.index(csv_path)
             next_idx = (current_idx + 1) % len(files)
@@ -220,7 +220,7 @@ def main_app(doc: Document):
         files = get_file_list()
         if not files:
             return
-        
+        update_file_list()
         try:
             current_idx = files.index(csv_path)
             prev_idx = (current_idx - 1) % len(files)
@@ -228,6 +228,24 @@ def main_app(doc: Document):
         except ValueError:
             # If current file not found in list, load last file
             load_file(files[-1])
+
+    def add_annotation_to_dataframe(df: pd.DataFrame, ranges: list, anomaly_class: str):
+        """
+        Add annotation to dataframe
+        
+        Args:
+            df: DataFrame to annotate
+            ranges: List of [start, end] ranges for anomalies
+            anomaly_class: Class label for the anomaly
+        """
+        if "anomaly" not in df.columns:
+            df["anomaly"] = 0
+            df["anomaly_class"] = ""
+
+        for _, range_data in ranges:
+            for start, end in range_data:
+                df.loc[start:end, "anomaly"] = 1
+                df.loc[start:end, "anomaly_class"] = anomaly_class
 
     # Update receive_box_data to handle only save and load_file actions
     def receive_box_data(attr, old, new):
@@ -250,8 +268,6 @@ def main_app(doc: Document):
             return
         
         # Handle save action
-        print(f"Received box coordinates")
-        print(new["data"])
         new["data"].pop()  # remove dummy entry
         save = new["data"].pop()  # second last entry indicates whether to save
         
@@ -259,15 +275,18 @@ def main_app(doc: Document):
             note = new["data"].pop()
             selected_class = new["data"].pop()
             
-            file_base = os.path.basename(csv_path)[:-4]
+            # Get the current file name from the actual loaded file path
+            current_file = os.path.basename(csv_path)
+            file_base = current_file[:-4]  # Remove .csv extension
+            
+            print(f"Saving annotation for file: {current_file}")  # Debug print
+            
             current_annotations = mapping.get(file_base, {
                 "annotations": []
             })
             
             # Print the data being saved
-            print(f"Saving annotation:")  # Debug print
             print(f"Class: {selected_class}")  # Debug print
-            print(f"Ranges: {new['data']}")  # Debug print
             
             annotation = {
                 "class": selected_class,
@@ -277,12 +296,13 @@ def main_app(doc: Document):
             }
             current_annotations["annotations"].append(annotation)
             
-            # Save annotations
-            add_annotation(df, new["data"], selected_class)
+            # Save annotations to DataFrame
+            add_annotation_to_dataframe(df, new["data"], selected_class)
             
-            csv_loc = os.path.join(output_csv_dir, os.path.basename(csv_path))
-            print(f"Saving annotated file to {csv_loc}")
-            df.to_csv(csv_loc, index=False)
+            # Save annotated CSV
+            output_file = os.path.join(output_csv_dir, current_file)
+            print(f"Saving annotated file to {output_file}")  # Debug print
+            df.to_csv(output_file, index=False)
             
             # Update mapping
             mapping[file_base] = current_annotations
@@ -292,13 +312,11 @@ def main_app(doc: Document):
                 json.dump(mapping, f, indent=2)
 
             print(f"Updated annotations for {file_base}")
-            print(f"Current mapping contains {len(mapping)} files")
             
             # After saving, automatically move to next file
             on_next_click()
         
         loader.visible = False
-        file_list.children = [file_list_title] + create_file_list()
 
     def on_session_destroyed(session_context):
         csv_loc = os.path.join(output_csv_dir, os.path.basename(csv_path))
@@ -307,7 +325,36 @@ def main_app(doc: Document):
         # user didn't save annotated file, so add the file back to the list
         csv_paths.append(csv_path)
 
+    # Add clear function
+    def on_clear_click():
+        current_file = os.path.basename(csv_path)
+        file_base = current_file[:-4]
+        
+        # Remove from mapping
+        if file_base in mapping:
+            del mapping[file_base]
+            
+            # Save updated mapping
+            with open(mapping_file, "w") as f:
+                json.dump(mapping, f, indent=2)
+        
+        # Remove the annotated file if it exists
+        output_file = os.path.join(output_csv_dir, current_file)
+        if os.path.exists(output_file):
+            os.remove(output_file)
+        
+        # Clear note and reset class selector
+        note.value = ""
+        class_select.value = anomaly_classes[0]
+        
+        # Reload the current file to clear annotations from plot
+        load_file(csv_path)
+        
+        # Update file list to reflect changes
+        file_list.children = [file_list_title] + create_file_list()
 
+    # Add click handler for clear button
+    bclear.on_click(on_clear_click)
 
     file_list = column(
         file_list_title,
@@ -318,8 +365,6 @@ def main_app(doc: Document):
         sizing_mode="fixed"
     )
 
-    # Update file list to reflect current selection
-    file_list.children = [file_list_title] + create_file_list()
     # Initialize with first file
     load_file(csv_paths[0])
 
@@ -328,42 +373,6 @@ def main_app(doc: Document):
     # Add the button click handlers
     bnext.on_click(on_next_click)
     bprev.on_click(on_prev_click)
-
-    # Update the save button's CustomJS code
-    bsave.js_on_click(
-        CustomJS(
-            args=dict(loader=loader, source=source, class_select=class_select, name=note),
-            code="""
-                if (!window.boxes) {
-                    window.boxes = []
-                }
-                const ranges = new Map()
-                boxes.forEach(
-                    ({ name, box }) => {
-                        if (!ranges.has(name)) ranges.set(name, [])
-                        const range = ranges.get(name)
-                        range.push([Math.round(box.left), Math.round(box.right)].sort((a, b) => a - b))
-                    }
-                )
-                loader.visible = true
-                const data = Array.from(ranges.entries())
-                data.push(class_select.value)  // Add selected class
-                data.push(name.value)  // Add note
-                data.push(true) // for saving
-                data.push(Math.random()) // ensuring on_change gets triggered
-                source.data = {
-                    data
-                }
-                source.change.emit()
-                window.boxes.forEach(({ fig, box }) => {
-                    fig.remove_layout(box)
-                    box.visible = false
-                })
-                window.boxes = []
-            """,
-        )
-    )
-
     # add listeners
     source.on_change("data", receive_box_data)
     bsave.js_on_click(
@@ -427,9 +436,6 @@ def main_app(doc: Document):
 if __name__ == "__main__":
     from bokeh.util.browser import view
 
-    print(
-        "Opening Tornado app with embedded Bokeh application on http://localhost:5006/"
-    )
 
     server = Server(
     {"/": main_app},
@@ -437,3 +443,32 @@ if __name__ == "__main__":
     )
     server.io_loop.add_callback(view, "http://localhost:5006/")
     server.io_loop.start()
+
+def get_file_base(file_path):
+    """Get the base name of the file without extension"""
+    return os.path.basename(file_path)[:-4]
+
+def get_output_file_path(file_path):
+    """Get the path for the annotated output file"""
+    return os.path.join(output_csv_dir, os.path.basename(file_path))
+
+def save_mapping():
+    """Save mapping to JSON file"""
+    with open(mapping_file, "w") as f:
+        json.dump(mapping, f, indent=2)
+
+def get_latest_annotation(file_base):
+    """Get the most recent annotation for a file"""
+    if file_base in mapping and mapping[file_base]["annotations"]:
+        return mapping[file_base]["annotations"][-1]
+    return None
+
+def update_annotation_ui(annotation=None):
+    """Update UI elements based on annotation"""
+    if annotation:
+        note.value = annotation.get("note", "")
+        if "class" in annotation:
+            class_select.value = annotation["class"]
+    else:
+        note.value = ""
+        class_select.value = anomaly_classes[0]
