@@ -5,7 +5,7 @@ import itertools
 from bokeh.plotting import figure
 from bokeh.models import CustomJS, Model, BoxAnnotation, Label
 from bokeh.palettes import Dark2_5 as palette
-import os
+from css import apply_plot_theme
 
 figures = [
     {
@@ -231,21 +231,11 @@ def plot_df(df: pd.DataFrame, mapping: dict = None, file_name: str = None):
         f["model"] = figure(
             width=1000, 
             height=500, 
-            title=f["title"],
-            background_fill_color='#1a1a1a',
-            border_fill_color='#1a1a1a',
-            outline_line_color='#404040'
+            title=f["title"]
         )
-        # Set text colors
-        f["model"].title.text_color = "#e0e0e0"
-        f["model"].xaxis.axis_label_text_color = "#e0e0e0"
-        f["model"].yaxis.axis_label_text_color = "#e0e0e0"
-        f["model"].xaxis.major_label_text_color = "#e0e0e0"
-        f["model"].yaxis.major_label_text_color = "#e0e0e0"
-        # Set grid colors
-        f["model"].grid.grid_line_color = "#404040"
-        f["model"].grid.grid_line_alpha = 0.3
-
+        # Apply theme
+        apply_plot_theme(f["model"])
+        
         for p in f["plots"]:
             try:
                 y = df[p["col"]]
@@ -298,7 +288,8 @@ def plot_df(df: pd.DataFrame, mapping: dict = None, file_name: str = None):
                                     f["model"].add_layout(label)
 
             except Exception as e:
-                print("Couldn't find", p["col"])
+                #print("Couldn't find", p["col"])
+                pass
 
         enable_highlight(f["model"], figname=f["title"])
 

@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
 
-#TODO: add multi-class anomaly classification feature
-
-from tornado.web import RequestHandler
-
 from bokeh.layouts import row, column
 from bokeh.plotting import Document
 from bokeh.server.server import Server
@@ -16,13 +12,11 @@ from bokeh.models import (
     TextInput,
     Select,
 )
+from css import LAYOUT_SETTINGS
 
 import os
 import json
-import numpy as np
 import pandas as pd
-from typing import Optional, Tuple
-from css import annotate_stylesheet, annotated_files_stylesheet
 cwd = os.path.dirname(os.path.abspath(__file__))
 csv_dir = os.path.join(cwd, "../data/csv_files")
 output_csv_dir = os.path.join(cwd, "../data/annotated_csv_files")
@@ -47,6 +41,11 @@ csv_paths = [
 
 
 def main_app(doc: Document):
+
+    # Customize your classes  
+    anomaly_classes = ['Mechanical', 'Altitude', 'External Position', 
+                       'Heading', 'Global Position', 'Electrical']  
+        
     bokeh_models = []  # Initialize empty list for models
     
     title = Div(
@@ -74,8 +73,6 @@ def main_app(doc: Document):
     source = ColumnDataSource(data=dict(data=[]))
 
     # Add class selector
-    anomaly_classes = ['Mechanical', 'Altitude', 'External Position', 
-                       'Heading', 'Global Position', 'Electrical']  # Customize your classes    
     class_select = Select(
         title="Anomaly Class:",
         value=anomaly_classes[0],
@@ -362,7 +359,7 @@ def main_app(doc: Document):
         css_classes=["file-list-panel"],
         width=250,
         height_policy="fit",
-        sizing_mode="fixed"
+        sizing_mode="stretch_height"
     )
 
     # Initialize with first file
@@ -424,10 +421,11 @@ def main_app(doc: Document):
     layout = row(
         main_content,
         file_list,
-        sizing_mode="stretch_both",
-        styles={"background-color": "#7B7B7B"},
+        **LAYOUT_SETTINGS
     )
 
+
+    # Update theme assignment
     doc.add_root(layout)
     doc.on_session_destroyed(on_session_destroyed)
 
@@ -462,13 +460,3 @@ def get_latest_annotation(file_base):
     if file_base in mapping and mapping[file_base]["annotations"]:
         return mapping[file_base]["annotations"][-1]
     return None
-
-def update_annotation_ui(annotation=None):
-    """Update UI elements based on annotation"""
-    if annotation:
-        note.value = annotation.get("note", "")
-        if "class" in annotation:
-            class_select.value = annotation["class"]
-    else:
-        note.value = ""
-        class_select.value = anomaly_classes[0]
