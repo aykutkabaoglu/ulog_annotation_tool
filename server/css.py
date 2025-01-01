@@ -1,4 +1,3 @@
-
 # Plot theme settings
 PLOT_SETTINGS = {
     'background_fill_color': '#1a1a1a',
@@ -19,6 +18,7 @@ LAYOUT_SETTINGS = {
     }
 }
 
+
 def apply_plot_theme(plot):
     """Apply the dark theme to a plot"""
     plot.background_fill_color = PLOT_SETTINGS['background_fill_color']
@@ -35,3 +35,4 @@ def apply_plot_theme(plot):
     # Set grid colors
     plot.grid.grid_line_color = PLOT_SETTINGS['grid_line_color']
     plot.grid.grid_line_alpha = PLOT_SETTINGS['grid_line_alpha']
+

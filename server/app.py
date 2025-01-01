@@ -41,7 +41,6 @@ csv_paths = [
 
 
 def main_app(doc: Document):
-
     # Customize your classes  
     anomaly_classes = ['Mechanical', 'Altitude', 'External Position', 
                        'Heading', 'Global Position', 'Electrical']  
@@ -52,16 +51,35 @@ def main_app(doc: Document):
         text="Annotate anomalies in log file",
         visible=True,
         css_classes=["title"],
-        width_policy="max"
+        width_policy="max",
+        styles={"text-align": "center",
+                "font-size": "36px",
+                "font-weight": "bold",
+                "margin": "20px 0",
+                "padding": "10px",
+                "color": "#000000"
+                }
     )
 
     loader = Div(
-        text="<div></div>",  # Empty div that will get the loader style
-        width=20,
-        height=20,
-        visible=True,  # Set to True initially
-        css_classes=["loader"],
-        styles={"display": "inline-block"}
+        text="""
+            <div class="loading-spinner">
+                <div class="spinner"></div>
+                <div class="loading-text">Loading...</div>
+            </div>
+        """,
+        width=200,
+        height=200,
+        visible=True,
+        css_classes=["loader-container"],
+        styles={
+            "z-index": "9999",
+            "background-color": "rgba(32, 32, 32, 0.8)",  # Semi-transparent dark background
+            "padding": "10px",
+            "border-radius": "10px",
+            "text-align": "center",
+            "font-size": "36px",
+        }
     )
     bprev = Button(label="Previous", button_type="primary")
     bnext = Button(label="Next", button_type="primary")
@@ -83,39 +101,57 @@ def main_app(doc: Document):
     filename_display = Div(
         text="Current file: None",
         css_classes=["filename"],
-        width_policy="max"
+        width_policy="max",
+        styles={"font-size": "24px",
+                "color": "#FFFFFF",
+                "text-align": "center"}
     )
 
     # Create file list panel
     file_list_title = Div(
         text="Files in Directory",
-        css_classes=["file-list-title"]
+        css_classes=["file-list-title"],
+        styles={"font-size": "24px",
+                "color": "#FFFFFF",
+                "text-align": "center"}
     )
 
     # Add clear button in the header section where other buttons are defined
     bclear = Button(label="Clear", button_type="danger")
 
-    # Update the header layout to include the clear button
+    # Update the header layout to include the loader
     header = column(
         row(title, sizing_mode="stretch_width"),
         row(filename_display, sizing_mode="stretch_width"),
         row(
-            note,
-            class_select,
-            bundo,
-            bprev,
-            bnext,
-            bsave,
-            bclear,  # Add clear button
-            css_classes=["controls"],
-            sizing_mode="stretch_width"
+            column(
+                row(
+                    note,
+                    class_select,
+                    sizing_mode="stretch_width",
+                    styles={"align-items": "center"}
+                ),
+                row(
+                    bundo,
+                    bprev,
+                    bnext,
+                    bsave,
+                    bclear,  # Add clear button
+                    sizing_mode="stretch_width",
+                    css_classes=["controls"],
+                    styles={"align-items": "center"}
+                ),
+            ),
+            css_classes=["controls"]
         ),
         css_classes=["nav"],
-        sizing_mode="stretch_width"
+        sizing_mode="stretch_width",
+        styles={"align-items": "center"}  # Center align all items in header
     )
 
     main_content = column(
         header,
+        loader,
         *bokeh_models,
         sizing_mode="stretch_width",
         styles={"align-items": "center"},
@@ -159,7 +195,6 @@ def main_app(doc: Document):
                         loader=loader
                     ),
                     code="""
-                        loader.visible = true;
                         source.data = {
                             'data': ['load_file', fname]
                         };
@@ -187,7 +222,7 @@ def main_app(doc: Document):
             # Create new bokeh models or update existing models with new data
             bokeh_models = plot_df(df, mapping, os.path.basename(csv_path))
             
-            # Update main_content with models
+            # Update main_content with models and hide loader
             main_content.children = [header] + bokeh_models
             
             return True
@@ -195,6 +230,8 @@ def main_app(doc: Document):
 
     # Add click handlers for next/previous buttons
     def get_file_list():
+        # Show loader and remove plots while loading
+        main_content.children = [header] + [loader]
         return sorted([os.path.join(csv_dir, f) for f in os.listdir(csv_dir) if f.endswith('.csv')])
 
     def update_file_list():
@@ -250,18 +287,19 @@ def main_app(doc: Document):
             return
 
         action = new["data"][0]
+
+        # Show loader and remove plots while loading
+        main_content.children = [header] + [loader]
         
         if action == "load_file":
-            # Load the selected file
+            main_content.children = [header] + [loader]
             filename = new["data"][1]
             new_path = os.path.join(csv_dir, filename)
-            loader.visible = True
             print(f"Loading file: {new_path}")
 
-            # Use the existing load_file function to handle file loading, plotting, and annotations
+            # Use the existing load_file function
             load_file(new_path)
             
-            loader.visible = False
             return
         
         # Handle save action
@@ -313,8 +351,6 @@ def main_app(doc: Document):
             # After saving, automatically move to next file
             on_next_click()
         
-        loader.visible = False
-
     def on_session_destroyed(session_context):
         csv_loc = os.path.join(output_csv_dir, os.path.basename(csv_path))
         if os.path.exists(csv_loc):
@@ -387,7 +423,6 @@ def main_app(doc: Document):
                         range.push([Math.round(box.left), Math.round(box.right)].sort((a, b) => a - b))
                     }
                 )
-                loader.visible = true
                 const data = Array.from(ranges.entries())
                 data.push(class_select.value)  // Add selected class
                 data.push(name.value)  // Add note
@@ -416,14 +451,12 @@ def main_app(doc: Document):
         )
     )
 
-
     # Create layout with main content and file list
     layout = row(
         main_content,
         file_list,
         **LAYOUT_SETTINGS
     )
-
 
     # Update theme assignment
     doc.add_root(layout)
@@ -441,22 +474,3 @@ if __name__ == "__main__":
     )
     server.io_loop.add_callback(view, "http://localhost:5006/")
     server.io_loop.start()
-
-def get_file_base(file_path):
-    """Get the base name of the file without extension"""
-    return os.path.basename(file_path)[:-4]
-
-def get_output_file_path(file_path):
-    """Get the path for the annotated output file"""
-    return os.path.join(output_csv_dir, os.path.basename(file_path))
-
-def save_mapping():
-    """Save mapping to JSON file"""
-    with open(mapping_file, "w") as f:
-        json.dump(mapping, f, indent=2)
-
-def get_latest_annotation(file_base):
-    """Get the most recent annotation for a file"""
-    if file_base in mapping and mapping[file_base]["annotations"]:
-        return mapping[file_base]["annotations"][-1]
-    return None
