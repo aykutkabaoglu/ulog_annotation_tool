@@ -10,7 +10,7 @@ from bokeh.models import (
     Button,
     Div,
     TextInput,
-    Select,
+    Select
 )
 from css import LAYOUT_SETTINGS
 
@@ -40,7 +40,7 @@ csv_paths = [
 ]
 
 
-def main_app(doc: Document):
+def main_app(doc: Document):  
     # Customize your classes  
     anomaly_classes = ['Mechanical', 'Altitude', 'External Position', 
                        'Heading', 'Global Position', 'Electrical']  
@@ -51,7 +51,6 @@ def main_app(doc: Document):
         text="Annotate anomalies in log file",
         visible=True,
         css_classes=["title"],
-        width_policy="max",
         styles={"text-align": "center",
                 "font-size": "36px",
                 "font-weight": "bold",
@@ -121,14 +120,13 @@ def main_app(doc: Document):
 
     # Update the header layout to include the loader
     header = column(
-        row(title, sizing_mode="stretch_width"),
-        row(filename_display, sizing_mode="stretch_width"),
+        row(title),
+        row(filename_display),
         row(
             column(
                 row(
                     note,
                     class_select,
-                    sizing_mode="stretch_width",
                     styles={"align-items": "center"}
                 ),
                 row(
@@ -137,7 +135,6 @@ def main_app(doc: Document):
                     bnext,
                     bsave,
                     bclear,  # Add clear button
-                    sizing_mode="stretch_width",
                     css_classes=["controls"],
                     styles={"align-items": "center"}
                 ),
@@ -145,7 +142,6 @@ def main_app(doc: Document):
             css_classes=["controls"]
         ),
         css_classes=["nav"],
-        sizing_mode="stretch_width",
         styles={"align-items": "center"}  # Center align all items in header
     )
 
@@ -154,7 +150,11 @@ def main_app(doc: Document):
         loader,
         *bokeh_models,
         sizing_mode="stretch_width",
-        styles={"align-items": "center"},
+        styles={
+            "align-items": "center", 
+            "min-height": "100%",
+            "flex": "0.75"  # Take up 85% of the space
+        },
         css_classes=["main-content"]
     )
 
@@ -184,7 +184,6 @@ def main_app(doc: Document):
                     label=label,
                     button_type=button_type,
                     css_classes=["file-item", "file-labeled" if is_labeled else "file-unlabeled"],
-                    width=200
                 )
                 
                 # Add click handler
@@ -393,9 +392,11 @@ def main_app(doc: Document):
         file_list_title,
         *create_file_list(),
         css_classes=["file-list-panel"],
-        width=250,
-        height_policy="fit",
-        sizing_mode="stretch_height"
+        styles={
+            "overflow-y": "auto",
+            "height": "100vh",
+            "flex": "0.25"  # Take up 15% of the space
+        }
     )
 
     # Initialize with first file

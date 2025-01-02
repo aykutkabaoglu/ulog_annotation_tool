@@ -12,12 +12,13 @@ PLOT_SETTINGS = {
 
 # Layout settings
 LAYOUT_SETTINGS = {
-    'sizing_mode': 'stretch_both',
+    'height_policy': 'fit',
+    'width_policy': 'max',
+    'sizing_mode': 'stretch_width',
     'styles': {
         'background-color': '#202020',
     }
 }
-
 
 def apply_plot_theme(plot):
     """Apply the dark theme to a plot"""
