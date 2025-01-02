@@ -56,7 +56,7 @@ def main_app(doc: Document):
                 "font-weight": "bold",
                 "margin": "20px 0",
                 "padding": "10px",
-                "color": "#000000"
+                "color": "#909090"
                 }
     )
 

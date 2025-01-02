@@ -37,3 +37,10 @@ def apply_plot_theme(plot):
     plot.grid.grid_line_color = PLOT_SETTINGS['grid_line_color']
     plot.grid.grid_line_alpha = PLOT_SETTINGS['grid_line_alpha']
 
+    # Set legend colors
+    plot.legend.background_fill_color = '#545454'
+    plot.legend.background_fill_alpha = 0.7
+    plot.legend.border_line_color = '#000000'
+    plot.legend.border_line_width = 1
+    plot.legend.label_text_color = '#000000'
+

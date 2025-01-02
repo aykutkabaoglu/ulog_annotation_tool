@@ -233,8 +233,6 @@ def plot_df(df: pd.DataFrame, mapping: dict = None, file_name: str = None):
             height=500, 
             title=f["title"]
         )
-        # Apply theme
-        apply_plot_theme(f["model"])
         
         for p in f["plots"]:
             try:
@@ -259,6 +257,8 @@ def plot_df(df: pd.DataFrame, mapping: dict = None, file_name: str = None):
                 #print("Couldn't find", p["col"])
                 pass
 
+        # Apply theme
+        apply_plot_theme(f["model"])
         enable_highlight(f["model"], figname=f["title"])
 
     return [f["model"] for f in figures]
