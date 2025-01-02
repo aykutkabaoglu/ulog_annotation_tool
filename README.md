@@ -1,38 +1,30 @@
-# Annotate PX4 Logs
+# Annotate ULOG Files / PX4 Logs
 
-Annotate PX4 Logs is a web application for gathering annotated PX4 log files. The web application servers a random log file
-to each user which they can review to identify and mark any anomalies.
-
-https://github.com/AkashKarnatak/annotate_px4_logs/assets/54985621/c55a77db-4941-41ad-a369-115c9126e2ae
+## Features
+- Multiclass labeling
+- Visualization of former annotated logs
+- Navigation within files using either file list or navigation buttons
+- Down or up sample data to match measurement frequencies
+- Clear button to remove all annotations in the current file
+- Highlighted annotated files in the file list
+- Note taking for each annotation
 
 ## Setup and Installation
 
-### 1. Clone the repository:
-
-   ```bash
-   git clone https://github.com/AkashKarnatak/annotate_px4_logs.git
-   ```
-
-### 2. Navigate to the project directory:
-
-   ```bash
-   cd annotate_px4_logs
-   ```
-
-### 3. Create a virtual environment:
+### Create a virtual environment:
 
    ```bash
    python3 -m venv venv
    source ./venv/bin/activate
    ```
 
-### 4. Install dependencies:
+### Install dependencies:
 
    ```bash
    pip3 install -r requirements.txt
    ```
 
-### 5. Download log files:
+### Download log files:
 
 Use the `./preprocessing/download_logs.py` script to download ulog files from PX4 flight review's
 database. Download options are specified in the `./preprocessing/downloader_options.yaml` file.
@@ -44,7 +36,7 @@ Update the download parameters as desired and then run the following command:
 
 The above command will start downloading ulog files in the `./data/ulg_files` directory.
 
-### 6. Create database:
+### Create database:
 
 Once you have downloaded the ulog files, you need to convert them to csv files for the
 application to serve the log files to users. Running the following command will convert
@@ -54,7 +46,9 @@ the ulog files into csv files and store them in the `./data/csv_files` directory
    python3 preprocessing/ulog2csv.py
    ```
 
-### 7. Run the server:
+You can either run the script with the default options or specify the `--skip-processed` flag to skip files that have already been processed. If you use get_all_topics() function, you can convert all the topics and fields to from ulog file to csv, or you can specify the topics and fields you want to convert by using get_custom_topics() function.
+
+### Run the server:
 
 Now you are all set and you can run the server by issuing the following command,
 
@@ -65,9 +59,6 @@ Now you are all set and you can run the server by issuing the following command,
 All the annotated files will be stored in csv format in the `./data/annotated_csv_files`
 directory.
 
-## Contributing
-
-Contributions are welcome! If you find a bug, have an idea for an enhancement, or want to contribute in any way, feel free to open an issue or submit a pull request.
 
 ## License
 
