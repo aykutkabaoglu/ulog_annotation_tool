@@ -251,42 +251,10 @@ def plot_df(df: pd.DataFrame, mapping: dict = None, file_name: str = None):
                 # Check if we have annotations for this file in mapping
                 if mapping and file_name and file_name[:-4] in mapping:
                     file_annotations = mapping[file_name[:-4]]["annotations"]
-                    
-                    for annotation in file_annotations:
-                        # Get the class and ranges for this annotation
-                        anomaly_class = annotation["class"]
-                        ranges = annotation["ranges"]
-                        
-                        # Find ranges that match this plot's column
-                        for col, col_ranges in ranges:
-                            if col == f["title"]:
-                                # Create box annotations for each range
-                                for start, end in col_ranges:
-                                    box = BoxAnnotation(
-                                        left=start,
-                                        right=end,
-                                        fill_alpha=0.2,
-                                        fill_color='red',
-                                        level='overlay'
-                                    )
-                                    f["model"].add_layout(box)
-                                    
-                                    # Add label at the top of the box
-                                    label = Label(
-                                        x= (start+end)/2,
-                                        y= 0,  # Position at bottom instead of top
-                                        text=anomaly_class,
-                                        text_color='white',  # White text
-                                        text_font_size='12pt',  # Larger font
-                                        text_font_style='bold',
-                                        background_fill_color='rgba(0,0,0,0.7)',  # Semi-transparent black background
-                                        background_fill_alpha=0.7,
-                                        text_align='center',
-                                        border_line_color='green',  # White border
-                                        border_line_alpha=0.7,
-                                    )
-                                    f["model"].add_layout(label)
 
+                    box, label = get_annotation_box_and_label(file_annotations, f["title"])
+                    f["model"].add_layout(box)
+                    f["model"].add_layout(label)
             except Exception as e:
                 #print("Couldn't find", p["col"])
                 pass
@@ -294,6 +262,40 @@ def plot_df(df: pd.DataFrame, mapping: dict = None, file_name: str = None):
         enable_highlight(f["model"], figname=f["title"])
 
     return [f["model"] for f in figures]
+
+def get_annotation_box_and_label(file_annotations, plot_title):
+    for annotation in file_annotations:
+        # Get the class and ranges for this annotation
+        anomaly_class = annotation["class"]
+        ranges = annotation["ranges"]
+        # Find ranges that match this plot's column
+        for col, col_ranges in ranges:
+            if col == plot_title:
+                # Create box annotations for each range
+                for start, end in col_ranges:
+                    box = BoxAnnotation(
+                        left=start,
+                        right=end,
+                        fill_alpha=0.2,
+                        fill_color='red',
+                        level='overlay'
+                    )
+
+                    # Add label at the top of the box
+                    label = Label(
+                        x= (start+end)/2,
+                        y= 0,  # Position at bottom instead of top
+                        text=anomaly_class,
+                        text_color='white',  # White text
+                        text_font_size='12pt',  # Larger font
+                        text_font_style='bold',
+                        background_fill_color='rgba(0,0,0,0.7)',  # Semi-transparent black background
+                        background_fill_alpha=0.7,
+                        text_align='center',
+                        border_line_color='green',  # White border
+                        border_line_alpha=0.7,
+                    )
+    return box, label
 
 
 def enable_highlight(fig: Model, figname: str):
