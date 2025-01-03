@@ -280,8 +280,8 @@ def main_app(doc: Document):
                 df.loc[start:end, "anomaly"] = 1
                 df.loc[start:end, "anomaly_class"] = anomaly_class
 
-    # Update receive_box_data to handle only save and load_file actions
-    def receive_box_data(attr, old, new):
+    # Update update_data_callback to handle only save and load_file actions
+    def update_data_callback(attr, old, new):
         if new.get("data") is None or len(new["data"]) == 0:
             return
 
@@ -408,7 +408,7 @@ def main_app(doc: Document):
     bnext.on_click(on_next_click)
     bprev.on_click(on_prev_click)
     # add listeners
-    source.on_change("data", receive_box_data)
+    source.on_change("data", update_data_callback)
     bsave.js_on_click(
         CustomJS(
             args=dict(loader=loader, source=source, class_select=class_select, name=note),
@@ -448,7 +448,7 @@ def main_app(doc: Document):
                 if (!window.boxes || !window.boxes.length) return
                 const { name, box } = window.boxes.pop()
                 box.visible = false
-            """,
+            """
         )
     )
 

@@ -237,7 +237,7 @@ def plot_df(df: pd.DataFrame, mapping: dict = None, file_name: str = None):
         for p in f["plots"]:
             try:
                 y = df[p["col"]]
-                x = np.arange(y.shape[0])
+                x = df['timestamp']
                 f["model"].line(
                     x,
                     y,
