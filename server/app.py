@@ -36,13 +36,13 @@ if os.path.exists(mapping_file):
 # only include files which haven't been annotated
 csv_paths = [
     os.path.join(csv_dir, csv_file_name)
-    for csv_file_name in set(os.listdir(csv_dir)).difference(os.listdir(output_csv_dir))
+    for csv_file_name in sorted(set(os.listdir(csv_dir)).difference(os.listdir(output_csv_dir)))
 ]
 
 
 def main_app(doc: Document):  
     # Customize your classes  
-    anomaly_classes = ['Mechanical', 'Altitude', 'External Position', 
+    anomaly_classes = ['Normal','Mechanical', 'Altitude', 'External Position', 
                        'Heading', 'Global Position', 'Electrical']  
         
     bokeh_models = []  # Initialize empty list for models
@@ -159,12 +159,12 @@ def main_app(doc: Document):
     )
 
     def create_file_list():
-        all_files = set(os.listdir(csv_dir))
-        labeled_files = set(os.listdir(output_csv_dir))
+        all_files = sorted(set(os.listdir(csv_dir)))
+        labeled_files = sorted(set(os.listdir(output_csv_dir)))
         
         file_items = []
         
-        for fname in sorted(all_files):
+        for fname in all_files:
             if fname.endswith('.csv'):
                 is_labeled = fname in labeled_files
                 file_info = mapping.get(fname[:-4], {"annotations": []})
