@@ -30,12 +30,10 @@ def get_custom_topics() -> dict:
             "roll",
             "pitch",
             "yaw",
-            "roll_d",
-            "pitch_d",
-            "yaw_d",
-            "rollspeed",
-            "pitchspeed",
-            "yawspeed"
+            "q[0]",
+            "q[1]",
+            "q[2]",
+            "q[3]"
         ],
         "vehicle_attitude_setpoint": [
             "roll_d",
@@ -44,10 +42,6 @@ def get_custom_topics() -> dict:
             "roll_body",
             "pitch_body",
             "yaw_body",
-            "q[0]",
-            "q[1]",
-            "q[2]",
-            "q[3]"
         ],
         "vehicle_local_position": [
             "x",
@@ -59,7 +53,13 @@ def get_custom_topics() -> dict:
             "vz",
             "ax",
             "ay",
-            "az"
+            "az",
+            "delta_xy[0]",
+            "delta_xy[1]",
+            "delta_z",
+            "eph",
+            "epv",
+            "evv"            
         ],
         "vehicle_local_position_setpoint": [
             "x",
@@ -68,20 +68,18 @@ def get_custom_topics() -> dict:
             "yaw",
             "vx",
             "vy",
-            "vz"
+            "vz",
+            "thrust[0]",
+            "thrust[1]",
+            "thrust[2]",
         ],
         "sensor_combined": [
             "accelerometer_m_s2[0]",
             "accelerometer_m_s2[1]",
             "accelerometer_m_s2[2]",
-            "baro_alt_meter",
             "gyro_rad[0]",
             "gyro_rad[1]",
             "gyro_rad[2]",
-            "magnetometer_ga[0]",
-            "magnetometer_ga[1]",
-            "magnetometer_ga[2]",
-            "alt"
         ],
         "vehicle_magnetometer": [
             "magnetometer_ga[0]",
@@ -89,7 +87,7 @@ def get_custom_topics() -> dict:
             "magnetometer_ga[2]",
         ],
         "vehicle_air_data": [
-            "baro_alt_meter",
+            "baro_alt_meter", # normalize the data
             "baro_temp_celcius",
             "baro_pressure_pa",
             "rho"
@@ -110,11 +108,13 @@ def get_custom_topics() -> dict:
         ],
         # "position_setpoint_triplet": [
         #     "current": [
-        #         "alt"
+        #         "x",
+        #         "y",
+        #         "z",
+        #         "yaw"
         #     ]
         # ],
         "actuator_controls_0": [
-            "thrust",
             "control[0]",
             "control[1]",
             "control[2]",
@@ -143,34 +143,28 @@ def get_custom_topics() -> dict:
             "x",
             "y",
             "z",
+            "q[0]",
+            "q[1]",
+            "q[2]",
+            "q[3]",
             "vx",
             "vy",
             "vz",
-            "roll",
-            "pitch",
-            "yaw",
-            "latency"
-        ],
-        "vehicle_magnetometer": [
-            "magnetometer_ga[0]",
-            "magnetometer_ga[1]",
-            "magnetometer_ga[2]",
-        ],
-        "sensor_combined": [
-            "magnetometer_ga[0]",
-            "magnetometer_ga[1]",
-            "magnetometer_ga[2]",
         ],
         "rate_ctrl_status": [
-            "rollspeed",
-            "pitchspeed",
-            "yawspeed"
+            "rollspeed_integ",
+            "pitchspeed_integ",
+            "yawspeed_integ"
         ],
         "battery_status": [
             "voltage_v",
+            "voltage_filtered_v",
             "current_a",
+            "current_filtered_a",
             "discharged_mah",
-            "remaining"
+            "remaining",
+            "scale",
+            "connected"
         ],
         "vehicle_rates_setpoint": [
             "roll",
@@ -186,7 +180,11 @@ def get_custom_topics() -> dict:
             "arming_state",
             "vehicle_type",
             "nav_state",
-            "vehicle_land_detected"
+            "failsafe",
+            "rc_signal_lost",
+            "data_link_lost",
+            "engine_failure",
+            "mission_failure",
         ],
         "manual_control_setpoint": [
             "x",
@@ -195,51 +193,43 @@ def get_custom_topics() -> dict:
             "z"
         ],
         "estimator_status": [
+            "vibe[0]",
+            "vibe[1]",
             "vibe[2]",
-            "time_slip",
-
-        ],
-        "vehicle_angular_acceleration": [
-            "xyz[0]",
-            "xyz[1]",
-            "xyz[2]"
         ],
         "input_rc": [
             "rssi",
             "rc_lost"
         ],
-        "sensor_baro": [
-            "temperature"
-        ],
-        "sensor_accel": [
-            "temperature"
-        ],
         "cpuload": [
             "load",
             "ram_usage"
         ],
-        "ekf2_innovations": [
-            "mag_innov",
-            "mag_innov_var",
-            "vel_innov",
-            "vel_innov_var",
-            "pos_innov",
-            "pos_innov_var",
-            "hagl_innov",
-            "hagl_innov_var"
+        # "ekf2_innovations": [
+        #     "hagl_innov",
+        #     "hagl_innov_var"
+        # ],
+        "system_power": [
+            "voltage5v_v",
+            "voltage3v3_v"
         ],
-        "vehicle_gps_position": [
-            "lat",
-            "lon",
-            "alt"
+        "telemetry_status": [
+            "rate_rx",
+            "rate_tx"
+        ],
+        "vehicle_land_detected": [
+            "ground_contact",
+            "maybe_landed",
+            "landed",
+            "in_ground_effect"
         ]
     }
 
 
 def extract_topics(ulog) -> List[MissionData] | str:
     # Get all topics and their attributes
-    #params = get_all_topics(ulog)
-    params = get_custom_topics()
+    params = get_all_topics(ulog)
+    #params = get_custom_topics()
     # create each column for the given attributes in params
     cols = []
     for dataset, attrs in params.items():
