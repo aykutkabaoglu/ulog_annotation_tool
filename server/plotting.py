@@ -9,39 +9,17 @@ from css import apply_plot_theme
 
 figures = [
     {
-        "title": "Attitude.Pitch",
-        "plots": [
-            {"col": "vehicle_attitude.pitch", "label": "Pitch"},
-            {"col": "vehicle_attitude_setpoint.pitch_d", "label": "Pitch Setpoint"},
-            {"col": "vehicle_attitude.pitchspeed", "label": "Pitch Speed"},
-            {"col": "vehicle_attitude_setpoint.pitch_body", "label": "Pitch Body"},
-        ],
-    },
-    {
-        "title": "Attitude.Roll",
-        "plots": [
-            {"col": "vehicle_attitude.roll", "label": "Roll"},
-            {"col": "vehicle_attitude_setpoint.roll_d", "label": "Roll Setpoint"},
-            {"col": "vehicle_attitude.rollspeed", "label": "Roll Speed"},
-            {"col": "vehicle_attitude_setpoint.roll_body", "label": "Roll Body"},
-        ],
-    },
-    {
-        "title": "Attitude.Yaw",
-        "plots": [
-            {"col": "vehicle_attitude.yaw", "label": "Yaw"},
-            {"col": "vehicle_attitude_setpoint.yaw_d", "label": "Yaw Setpoint"},
-            {"col": "vehicle_attitude.yawspeed", "label": "Yaw Speed"},
-            {"col": "vehicle_attitude_setpoint.yaw_body", "label": "Yaw Body"},
-            {"col": "vehicle_local_position.yaw", "label": "Local Yaw"},
-            {"col": "vehicle_local_position_setpoint.yaw", "label": "Local Setpoint Yaw"},
-        ],
-    },
-    {
         "title": "Position.X",
         "plots": [
             {"col": "vehicle_local_position.x", "label": "X"},
             {"col": "vehicle_local_position_setpoint.x", "label": "X Setpoint"},
+            {"col": "vehicle_visual_odometry.x", "label": "VO X"},
+        ],
+    },
+    {
+        "title": "Actuator Pitch",
+        "plots": [
+            {"col": "actuator_controls_0.control[1]", "label": "Actuator Pitch"},
         ],
     },
     {
@@ -49,15 +27,110 @@ figures = [
         "plots": [
             {"col": "vehicle_local_position.y", "label": "Y"},
             {"col": "vehicle_local_position_setpoint.y", "label": "Y Setpoint"},
+            {"col": "vehicle_visual_odometry.y", "label": "VO Y"},
+        ],
+    },
+    {
+        "title": "Actuator Roll",
+        "plots": [
+            {"col": "actuator_controls_0.control[0]", "label": "Actuator Roll"},
         ],
     },
     {
         "title": "Position.Z",
         "plots": [
-            {"col": "vehicle_local_position.z", "label": "Z"},
-            {"col": "vehicle_local_position_setpoint.z", "label": "Z Setpoint"},
+            {"col": "vehicle_local_position.z", "label": "Z"}, # invert the data
+            {"col": "vehicle_local_position_setpoint.z", "label": "Z Setpoint"}, # invert the data
             {"col": "vehicle_air_data.baro_alt_meter", "label": "Altitude(m)"},
             {"col": "distance_sensor.current_distance", "label": "Distance Sensor"},
+            {"col": "vehicle_visual_odometry.z", "label": "VO Z"},
+            {"col": "gps_position.alt", "label": "GPS Alt"},
+            {"col": "sensor_combined.alt", "label": "Sensor Alt"},
+            {"col": "vehicle_global_position.alt", "label": "Global Position Alt"},
+        ],
+    },
+    {
+        "title": "Actuator Thrust",
+        "plots": [
+            {"col": "actuator_controls_0.control[3]", "label": "Actuator Thrust"},
+        ],
+    },
+    {
+        "title": "Global Position",
+        "plots": [
+            {"col": "vehicle_global_position.lat", "label": "Latitude"},
+            {"col": "vehicle_global_position.lon", "label": "Longitude"},
+            {"col": "vehicle_global_position.alt", "label": "Altitude"},
+            {"col": "vehicle_gps_position.lat", "label": "GPS Latitude"},
+            {"col": "vehicle_gps_position.lon", "label": "GPS Longitude"},
+            {"col": "vehicle_gps_position.alt", "label": "GPS Altitude"},   
+        ],
+    },
+    {
+        "title": "Attitude.Roll",
+        "plots": [
+            {"col": "actuator_controls_0.control[0]", "label": "Actuator Roll"},
+            {"col": "vehicle_attitude.q[0]", "label": "q[0]"}, # convert to roll
+            {"col": "vehicle_attitude_setpoint.q_d[0]", "label": "q_d[0]"},
+        ],
+    },
+    {
+        "title": "Attitude.Pitch",
+        "plots": [
+            {"col": "actuator_controls_0.control[1]", "label": "Actuator Pitch"},
+            {"col": "vehicle_attitude.q[0]", "label": "q[0]"}, # convert to pitch
+            {"col": "vehicle_attitude_setpoint.q_d[0]", "label": "q_d[0]"},
+        ],
+    },
+    {
+        "title": "Attitude.Yaw",
+        "plots": [
+            {"col": "vehicle_local_position.yaw", "label": "Local Yaw"},
+            {"col": "vehicle_local_position_setpoint.yaw", "label": "Local Setpoint Yaw"},
+            {"col": "actuator_controls_0.control[2]", "label": "Actuator Yaw"},
+        ],
+    },
+    {
+        "title": "Roll Rate",
+        "plots": [
+            {"col": "vehicle_rates_setpoint.roll", "label": "Roll Rate Setpoint"},
+            {"col": "actuator_controls_0.control[0]", "label": "Actuator Roll"},
+            {"col": "rate_ctrl_status.rollspeed_integ", "label": "Roll Speed Integral"},
+        ],
+    },
+    {
+        "title": "Pitch Rate",
+        "plots": [
+            {"col": "vehicle_rates_setpoint.pitch", "label": "Pitch Rate Setpoint"},
+            {"col": "actuator_controls_0.control[1]", "label": "Actuator Pitch"},
+            {"col": "rate_ctrl_status.pitchspeed_integ", "label": "Pitch Speed Integral"},
+        ],
+    },
+    {
+        "title": "Yaw Rate",
+        "plots": [
+            {"col": "vehicle_rates_setpoint.yaw", "label": "Yaw Rate Setpoint"},
+            {"col": "actuator_controls_0.control[2]", "label": "Actuator Yaw"},
+            {"col": "rate_ctrl_status.yawspeed_integ", "label": "Yaw Speed Integral"},
+        ],
+    },
+    {
+        "title": "Velocity",
+        "plots": [
+            {"col": "vehicle_local_position.vx", "label": "Vx"},
+            {"col": "vehicle_local_position_setpoint.vx", "label": "Vx Setpoint"},
+            {"col": "vehicle_local_position.vy", "label": "Vy"},
+            {"col": "vehicle_local_position_setpoint.vy", "label": "Vy Setpoint"},
+            {"col": "vehicle_local_position.vz", "label": "Vz"},
+            {"col": "vehicle_local_position_setpoint.vz", "label": "Vz Setpoint"},
+        ],
+    },
+    {
+        "title": "Vehicle Angular Velocity",
+        "plots": [
+            {"col": "vehicle_angular_velocity.xyz[0]", "label": "X"},
+            {"col": "vehicle_angular_velocity.xyz[1]", "label": "Y"},
+            {"col": "vehicle_angular_velocity.xyz[2]", "label": "Z"},
         ],
     },
     {
@@ -90,45 +163,17 @@ figures = [
             {"col": "vehicle_magnetometer.magnetometer_ga[0]", "label": "X"},
             {"col": "vehicle_magnetometer.magnetometer_ga[1]", "label": "Y"},
             {"col": "vehicle_magnetometer.magnetometer_ga[2]", "label": "Z"},
-        ],
-    },
-    {
-        "title": "Magnetometer",
-        "plots": [
-            {"col": "sensor_combined.magnetometer_ga[0]", "label": "X"},
-            {"col": "sensor_combined.magnetometer_ga[1]", "label": "Y"},
-            {"col": "sensor_combined.magnetometer_ga[2]", "label": "Z"},
-        ],
-    },    
-    {
-        "title": "Velocity",
-        "plots": [
-            {"col": "vehicle_local_position.vx", "label": "Vx"},
-            {"col": "vehicle_local_position_setpoint.vx", "label": "Vx Setpoint"},
-            {"col": "vehicle_local_position.vy", "label": "Vy"},
-            {"col": "vehicle_local_position_setpoint.vy", "label": "Vy Setpoint"},
-            {"col": "vehicle_local_position.vz", "label": "Vz"},
-            {"col": "vehicle_local_position_setpoint.vz", "label": "Vz Setpoint"},
-        ],
-    },
-    {
-        "title": "Altitude",
-        "plots": [
-            {"col": "vehicle_air_data.baro_alt_meter", "label": "baro_alt_meter"},
-            {"col": "gps_position.alt", "label": "GPS Alt"},
-            {"col": "sensor_combined.alt", "label": "Sensor Alt"},
-            {"col": "vehicle_global_position.alt", "label": "Global Position Alt"},
-            #{"col": "position_setpoint_triplet.current.alt", "label": "Sensor Alt"},
+            {"col": "battery_status.current_a", "label": "Current"},
+            {"col": "actuator_controls_0.control[3]", "label": "Thrust"},
         ],
     },
     {
         "title": "Actuator Controls",
         "plots": [
-            {"col": "actuator_controls.thrust", "label": "thrust"},
-            {"col": "actuator_controls.control[0]", "label": "Ctrl 0"},
-            {"col": "actuator_controls.control[1]", "label": "Ctrl 1"},
-            {"col": "actuator_controls.control[2]", "label": "Ctrl 2"},
-            {"col": "actuator_controls.control[3]", "label": "Ctrl 3"},
+            {"col": "actuator_controls_0.control[0]", "label": "Roll"},
+            {"col": "actuator_controls_0.control[1]", "label": "Pitch"},
+            {"col": "actuator_controls_0.control[2]", "label": "Yaw"},
+            {"col": "actuator_controls_0.control[3]", "label": "Thrust"},
         ],
     },
     {
@@ -138,36 +183,24 @@ figures = [
             {"col": "actuator_outputs.output[1]", "label": "Output 1"},
             {"col": "actuator_outputs.output[2]", "label": "Output 2"},
             {"col": "actuator_outputs.output[3]", "label": "Output 3"},
-            {"col": "actuator_outputs.output[4]", "label": "Output 4"},
-            {"col": "actuator_outputs.output[5]", "label": "Output 5"},
-            {"col": "actuator_outputs.output[6]", "label": "Output 6"},
-            {"col": "actuator_outputs.output[7]", "label": "Output 7"},
-        ],
-    },
-    {
-        "title": "RPY Rate",
-        "plots": [
-            {"col": "vehicle_rates_setpoint.roll", "label": "Roll Rate Setpoint"},
-            {"col": "vehicle_rates_setpoint.pitch", "label": "Pitch Rate Setpoint"},
-            {"col": "vehicle_rates_setpoint.yaw", "label": "Yaw Rate Setpoint"},
-            {"col": "rate_ctrl_status.rollspeed_integ", "label": "Roll Speed Integ"},
-            {"col": "rate_ctrl_status.pitchspeed_integ", "label": "Pitch Speed Integ"}, 
-            {"col": "rate_ctrl_status.yawspeed_integ", "label": "Yaw Speed Integ"},
-        ],
-    },
-    {
-        "title": "Vibration",
-        "plots": [
-            {"col": "estimator_status.vibe", "label": "Vibration"},
         ],
     },
     {
         "title": "Manual Control",
         "plots": [
-            {"col": "manual_control_setpoint.roll", "label": "Manual Roll"},
-            {"col": "manual_control_setpoint.pitch", "label": "Manual Pitch"},
-            {"col": "manual_control_setpoint.yaw", "label": "Manual Yaw"},
-            {"col": "manual_control_setpoint.throttle", "label": "Manual Throttle"},
+            {"col": "manual_control_setpoint.x", "label": "Manual Roll"},
+            {"col": "manual_control_setpoint.y", "label": "Manual Pitch"},
+            {"col": "manual_control_setpoint.r", "label": "Manual Yaw"},
+            {"col": "manual_control_setpoint.z", "label": "Manual Throttle"},
+            {"col": "manual_control_setpoint.kill_switch", "label": "Kill Switch"},
+        ],
+    },
+    {
+        "title": "Vibration",
+        "plots": [
+            {"col": "estimator_status.vibe[0]", "label": "Vibration X"},
+            {"col": "estimator_status.vibe[1]", "label": "Vibration Y"},
+            {"col": "estimator_status.vibe[2]", "label": "Vibration Z"},
         ],
     },
     {
@@ -176,51 +209,49 @@ figures = [
             {"col": "battery_status.voltage_v", "label": "Voltage"},
             {"col": "battery_status.current_a", "label": "Current"},
             {"col": "battery_status.remaining", "label": "Remaining"},
-            {"col": "battery_status.temperature", "label": "Temperature"},
         ],
     },
-    {
-        "title": "Visual Odometry Position",
-        "plots": [
-            {"col": "vehicle_visual_odometry.x", "label": "X"},
-            {"col": "vehicle_visual_odometry.y", "label": "Y"},
-            {"col": "vehicle_visual_odometry.z", "label": "Z"},
-        ],
-    },
-    {
-        "title": "Visual Odometry Velocity",
-        "plots": [
-            {"col": "vehicle_visual_odometry.vx", "label": "Vx"},
-            {"col": "vehicle_visual_odometry.vy", "label": "Vy"},
-            {"col": "vehicle_visual_odometry.vz", "label": "Vz"},
-        ],
-    },
-    {
-        "title": "Visual Odometry Orientation",
-        "plots": [
-            {"col": "vehicle_visual_odometry.roll", "label": "Roll"},
-            {"col": "vehicle_visual_odometry.pitch", "label": "Pitch"},
-            {"col": "vehicle_visual_odometry.yaw", "label": "Yaw"},
-        ],
-    },
-    {
-        "title": "Vehicle Angular Velocity",
-        "plots": [
-            {"col": "vehicle_angular_velocity.x", "label": "X"},
-            {"col": "vehicle_angular_velocity.y", "label": "Y"},
-            {"col": "vehicle_angular_velocity.z", "label": "Z"},
-        ],
-    },
-    {
-        "title": "Trajectory Setpoint",
-        "plots": [
-            {"col": "trajectory_setpoint.x", "label": "X"},
-            {"col": "trajectory_setpoint.y", "label": "Y"},
-            {"col": "trajectory_setpoint.z", "label": "Z"},
-            {"col": "trajectory_setpoint.yaw", "label": "Yaw"},
-        ],
-    }
 ]
+
+def quaternion_to_euler(q0, q1, q2, q3):
+    """Convert quaternion to Euler angles (roll, pitch, yaw)"""
+    # Roll (x-axis rotation)
+    sinr_cosp = 2 * (q0 * q1 + q2 * q3)
+    cosr_cosp = 1 - 2 * (q1 * q1 + q2 * q2)
+    roll = np.arctan2(sinr_cosp, cosr_cosp)
+
+    # Pitch (y-axis rotation)
+    sinp = 2 * (q0 * q2 - q3 * q1)
+    pitch = np.where(abs(sinp) >= 1,
+                    np.sign(sinp) * np.pi / 2,
+                    np.arcsin(sinp))
+
+    # Yaw (z-axis rotation)
+    siny_cosp = 2 * (q0 * q3 + q1 * q2)
+    cosy_cosp = 1 - 2 * (q2 * q2 + q3 * q3)
+    yaw = np.arctan2(siny_cosp, cosy_cosp)
+
+    return roll, pitch, yaw
+    
+
+def check_quaternion_plot(df, columns):
+    if "vehicle_attitude.q[" in columns:
+        q0 = df["vehicle_attitude.q[0]"]
+        q1 = df["vehicle_attitude.q[1]"]
+        q2 = df["vehicle_attitude.q[2]"]
+        q3 = df["vehicle_attitude.q[3]"]
+        label = ""
+
+    elif "vehicle_attitude_setpoint.q_d[" in columns:
+        q0 = df["vehicle_attitude_setpoint.q_d[0]"]
+        q1 = df["vehicle_attitude_setpoint.q_d[1]"]
+        q2 = df["vehicle_attitude_setpoint.q_d[2]"]
+        q3 = df["vehicle_attitude_setpoint.q_d[3]"]
+        label = "Setpoint"
+
+    roll, pitch, yaw = quaternion_to_euler(q0, q1, q2, q3)
+    
+    return roll, pitch, yaw, label
 
 # Plot the dataframe with the given models, highlight the anomalies and return the models
 def plot_df(df: pd.DataFrame, mapping: dict = None, file_name: str = None):
@@ -236,16 +267,28 @@ def plot_df(df: pd.DataFrame, mapping: dict = None, file_name: str = None):
         
         for p in f["plots"]:
             try:
+                # Normal plotting for non-quaternion data
                 y = df[p["col"]]
                 x = df['timestamp']
+
+                # Check if this is a quaternion plot
+                if f["title"] == "Attitude.Roll":
+                    y, _, _, label = check_quaternion_plot(df, p["col"])
+                    label = "Roll " + label
+                elif f["title"] == "Attitude.Pitch":
+                    _, y, _, label = check_quaternion_plot(df, p["col"])
+                    label = "Pitch " + label
+                else:
+                    label = p["label"]
+
                 f["model"].line(
-                    x,
-                    y,
+                    x, y,
                     color=next(colors),
-                    legend_label=p["label"],
+                    legend_label=label,
                     line_width=2,
-                    alpha=alpha,
+                    alpha=alpha
                 )
+                
                 # Check if we have annotations for this file in mapping
                 if mapping and file_name and file_name[:-4] in mapping:
                     file_annotations = mapping[file_name[:-4]]["annotations"]
