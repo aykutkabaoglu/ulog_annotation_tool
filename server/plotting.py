@@ -258,6 +258,12 @@ def plot_df(df: pd.DataFrame, mapping: dict = None, file_name: str = None):
     alpha = 0.7
     colors = itertools.cycle(palette)
 
+    # Check if we have annotations for this file in mapping
+    if mapping and file_name and file_name[:-4] in mapping:
+        file_annotations = mapping[file_name[:-4]]["annotations"]
+    else:
+        file_annotations = []
+
     for i, f in enumerate(figures):
         f["model"] = figure(
             width=1000, 
@@ -288,17 +294,14 @@ def plot_df(df: pd.DataFrame, mapping: dict = None, file_name: str = None):
                     line_width=2,
                     alpha=alpha
                 )
-                
-                # Check if we have annotations for this file in mapping
-                if mapping and file_name and file_name[:-4] in mapping:
-                    file_annotations = mapping[file_name[:-4]]["annotations"]
-
-                    box, label = get_annotation_box_and_label(file_annotations, f["title"])
-                    f["model"].add_layout(box)
-                    f["model"].add_layout(label)
             except Exception as e:
                 #print("Couldn't find", p["col"])
                 pass
+                
+        box_and_labels = get_annotation_box_and_label(file_annotations, f["title"])
+        for box, label in box_and_labels:
+            f["model"].add_layout(box)
+            f["model"].add_layout(label)
 
         # Apply theme
         apply_plot_theme(f["model"])
@@ -307,6 +310,7 @@ def plot_df(df: pd.DataFrame, mapping: dict = None, file_name: str = None):
     return [f["model"] for f in figures]
 
 def get_annotation_box_and_label(file_annotations, plot_title):
+    box_and_labels = []
     for annotation in file_annotations:
         # Get the class and ranges for this annotation
         anomaly_class = annotation["class"]
@@ -338,7 +342,8 @@ def get_annotation_box_and_label(file_annotations, plot_title):
                         border_line_color='green',  # White border
                         border_line_alpha=0.7,
                     )
-    return box, label
+                    box_and_labels.append((box, label))
+    return box_and_labels
 
 
 def enable_highlight(fig: Model, figname: str):
