@@ -228,8 +228,8 @@ def get_custom_topics() -> dict:
 
 def extract_topics(ulog) -> List[MissionData] | str:
     # Get all topics and their attributes
-    params = get_all_topics(ulog)
-    #params = get_custom_topics()
+    #params = get_all_topics(ulog)
+    params = get_custom_topics()
     # create each column for the given attributes in params
     cols = []
     for dataset, attrs in params.items():
@@ -283,15 +283,17 @@ def cols_to_df(cols: List[MissionData]) -> pd.DataFrame:
         columns=["timestamp"] + [f'{col["dataset"]}.{col["attr"]}' for col in cols],
     )
 
+parser = argparse.ArgumentParser(description='Convert ULog files to CSV format')
+parser.add_argument('--skip-processed', action='store_true', 
+                   help='Skip files that have already been processed')
+args = parser.parse_args()
+skip_processed = args.skip_processed
 
 # change to current file's dir
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 cwd = os.path.dirname(os.path.abspath(__file__))
 ulg_dir = os.path.join(cwd, "../data/ulg_files")
-ulg_paths = [
-    os.path.join(ulg_dir, ulg_file_name) for ulg_file_name in os.listdir(ulg_dir)
-]
 
 output_csv_dir = os.path.join(cwd, "../data/csv_files")
 
@@ -299,57 +301,66 @@ output_csv_dir = os.path.join(cwd, "../data/csv_files")
 if not os.path.isdir(output_csv_dir):
     os.makedirs(output_csv_dir)
 
-parser = argparse.ArgumentParser(description='Convert ULog files to CSV format')
-parser.add_argument('--skip-processed', action='store_false', default=False, 
-                   help='Skip files that have already been processed')
-args = parser.parse_args()
-skip_processed = args.skip_processed
+ulg_paths = []
+for root, subfolders, files in os.walk(ulg_dir):
+    if not subfolders:
+        dir_name = os.path.basename(root)
+        dir_name = os.path.join(output_csv_dir, dir_name)
+        if not os.path.isdir(dir_name):
+            os.makedirs(dir_name)
+            print("New directory:", dir_name)
 
-for i, ulog_path in enumerate(ulg_paths):
-    csv_loc = os.path.join(output_csv_dir, os.path.basename(ulog_path)[:-4] + ".csv")
+    for i, file in enumerate(files):
+        if not file.endswith('.ulg'):
+            continue
+        ulog_path = os.path.join(root, file)
 
-    # do not process files that have already been processed if --skip-processed is set
-    if skip_processed:
-        if os.path.exists(csv_loc):
-            print(f"{i+1} | File {csv_loc} already processed, skipping...")
+        csv_loc = os.path.join(dir_name, os.path.basename(ulog_path)[:-4] + ".csv")
+
+        # do not process files that have already been processed if --skip-processed is set
+        if skip_processed:
+            if os.path.exists(csv_loc):
+                print(f"{i+1} | File {csv_loc} already processed, skipping...")
+                continue
+
+        try:
+            ulog = ULog(ulog_path)
+        except:
+            print("Ulog file couldn't be read:", ulog_path)
+        px4ulog = PX4ULog(ulog)
+        px4ulog.add_roll_pitch_yaw()
+
+        cols = extract_topics(ulog)
+        if isinstance(cols, str):
+            print(f"{i+1} | Skipping {ulog_path}, missing dataset {cols}")
             continue
 
+        # Convert lengths of time to numpy array
+        timestamps_len = np.array([len(col["timestamp"]) for col in cols])
+        
+        # Find longest (highest frequency) series
+        longest_idx = np.argmax(timestamps_len)
+        longest_len = timestamps_len[longest_idx]
+        
+        # Find shortest (lowest frequency) series
+        shortest_idx = np.argmin(timestamps_len)
+        shortest_len = timestamps_len[shortest_idx]
+        
+        # Statistical measures
+        mean_len = np.mean(timestamps_len)
+        median_len = np.median(timestamps_len)
+        
+        # Find the column closest to the median
+        centroid_idx = np.argmin(np.abs(timestamps_len - median_len))
 
-    ulog = ULog(ulog_path)
-    px4ulog = PX4ULog(ulog)
-    px4ulog.add_roll_pitch_yaw()
+        # down or upsample data with the size of alignment column and 
+        # change timestamps with the timestamp of the alignment column
+        synchronize_timeseries(cols, centroid_idx)
+        df = cols_to_df(cols)
 
-    cols = extract_topics(ulog)
-    if isinstance(cols, str):
-        print(f"{i+1} | Skipping {ulog_path}, missing dataset {cols}")
-        continue
-
-    # Convert lengths of time to numpy array
-    timestamps_len = np.array([len(col["timestamp"]) for col in cols])
-    
-    # Find longest (highest frequency) series
-    longest_idx = np.argmax(timestamps_len)
-    longest_len = timestamps_len[longest_idx]
-    
-    # Find shortest (lowest frequency) series
-    shortest_idx = np.argmin(timestamps_len)
-    shortest_len = timestamps_len[shortest_idx]
-    
-    # Statistical measures
-    mean_len = np.mean(timestamps_len)
-    median_len = np.median(timestamps_len)
-    
-    # Find the column closest to the median
-    centroid_idx = np.argmin(np.abs(timestamps_len - median_len))
-
-    # down or upsample data with the size of alignment column and 
-    # change timestamps with the timestamp of the alignment column
-    synchronize_timeseries(cols, centroid_idx)
-    df = cols_to_df(cols)
-
-    # save to csv
-    if df.shape[0] < 100:
-        print(f"{i+1} | Mission mode in file {csv_loc} too short, skipping...")
-        continue
-    print(f"{i+1} | Converting {ulog_path} to csv")
-    df.to_csv(csv_loc, index=False)
+        # save to csv
+        if df.shape[0] < 100:
+            print(f"{i+1} | Mission mode in file {csv_loc} too short, skipping...")
+            continue
+        print(f"{i+1} | Converting {ulog_path} to {csv_loc}")
+        df.to_csv(csv_loc, index=False)
