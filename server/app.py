@@ -57,7 +57,15 @@ for root, _, files in os.walk(output_csv_dir):
                 rel_file = os.path.join(rel_path, file)
             labeled_files.append(rel_file)
 
+# Sort all_files to ensure consistent order
+all_files.sort()
+
+# Find first unannotated file for initial load
 current_idx = 0
+for idx, file in enumerate(all_files):
+    if file not in labeled_files:
+        current_idx = idx
+        break
 
 def main_app(doc: Document):  
     # Customize your classes  
@@ -180,8 +188,35 @@ def main_app(doc: Document):
     def create_file_list():       
         file_items = []
         
+        # Group files by directory
+        files_by_dir = {}
         for fname in all_files:
-            if fname.endswith('.csv'):
+            dir_path = os.path.dirname(fname)
+            if dir_path == '':
+                dir_path = '.'
+            if dir_path not in files_by_dir:
+                files_by_dir[dir_path] = []
+            files_by_dir[dir_path].append(fname)
+        
+        # Create folder structure
+        for dir_path, files in sorted(files_by_dir.items()):
+            # Add folder header if not in root
+            if dir_path != '.':
+                folder_header = Div(
+                    text=f"📁 {dir_path}",
+                    styles={
+                        "font-size": "18px",
+                        "font-weight": "bold",
+                        "color": "#FFFFFF",
+                        "padding": "10px 5px 5px 5px",
+                        "margin-top": "10px",
+                        "border-bottom": "1px solid #555555"
+                    }
+                )
+                file_items.append(folder_header)
+            
+            # Add files in the current directory
+            for fname in sorted(files):
                 is_labeled = fname in labeled_files
                 file_info = mapping.get(fname[:-4], {"annotations": []})
                 annotations = file_info.get("annotations", [])
@@ -189,23 +224,29 @@ def main_app(doc: Document):
                 # Create toggle button for each file
                 button_type = "success" if is_labeled else "light"
                 
+                # Show only filename in button, not full path
+                display_name = os.path.basename(fname)
+                
                 if is_labeled and annotations:
                     classes = ", ".join(set(ann["class"] for ann in annotations))
                     annotation_count = len(annotations)
-                    label = f"✓ {fname}\nClasses: {classes}\nAnnotations: {annotation_count}"
+                    label = f"✓ {display_name}\nClasses: {classes}\nAnnotations: {annotation_count}"
                 else:
-                    label = f"○ {fname}"
+                    label = f"○ {display_name}"
                 
                 btn = Button(
                     label=label,
                     button_type=button_type,
                     css_classes=["file-item", "file-labeled" if is_labeled else "file-unlabeled"],
+                    styles={
+                        "margin-left": "15px" if dir_path != '.' else "0px"  # Indent files in subfolders
+                    }
                 )
                 
                 # Add click handler
                 btn.js_on_click(CustomJS(
                     args=dict(
-                        fname=fname,
+                        fname=fname,  # Keep full path for internal use
                         source=source,
                         loader=loader
                     ),
@@ -224,15 +265,19 @@ def main_app(doc: Document):
 
     # Add new function to handle file navigation
     def load_file(relative_name):
-        global csv_path, df
+        global csv_path, df, current_idx
         nonlocal bokeh_models, main_content
+        
+        # Update current_idx to match the loaded file
+        current_idx = all_files.index(relative_name)
+        
         csv_path = os.path.join(csv_dir, relative_name)
         if csv_path and os.path.exists(csv_path):
             # Load the new file
             df = pd.read_csv(csv_path)
             
             # Update filename display
-            filename_display.text = f"Current file: {os.path.basename(csv_path)}"
+            filename_display.text = f"Current file: {relative_name}"  # Show full relative path
             
             # Create new bokeh models or update existing models with new data
             bokeh_models = plot_df(df, mapping, relative_name)
@@ -251,9 +296,16 @@ def main_app(doc: Document):
         # Show loader and remove plots while loading
         main_content.children = [header] + [loader]
         
-        update_file_list()
-        current_idx = (current_idx + 1) % len(all_files)
+        # Find next unannotated file
+        next_idx = (current_idx + 1) % len(all_files)
+        while next_idx != current_idx:
+            if all_files[next_idx] not in labeled_files:
+                break
+            next_idx = (next_idx + 1) % len(all_files)
+        
+        current_idx = next_idx
         load_file(all_files[current_idx])
+        update_file_list()
 
 
     def on_prev_click():
@@ -261,9 +313,16 @@ def main_app(doc: Document):
         # Show loader and remove plots while loading
         main_content.children = [header] + [loader]
 
-        update_file_list()
-        current_idx = (current_idx - 1) % len(all_files)
+        # Find previous unannotated file
+        prev_idx = (current_idx - 1) % len(all_files)
+        while prev_idx != current_idx:
+            if all_files[prev_idx] not in labeled_files:
+                break
+            prev_idx = (prev_idx - 1) % len(all_files)
+        
+        current_idx = prev_idx
         load_file(all_files[current_idx])
+        update_file_list()
 
 
     def add_annotation_to_dataframe(df: pd.DataFrame, ranges: list, anomaly_class: str):
@@ -363,23 +422,39 @@ def main_app(doc: Document):
             on_next_click()
         
     def on_session_destroyed(session_context):
-        csv_loc = os.path.join(output_csv_dir, os.path.basename(csv_path))
+        global current_idx
+        if current_idx >= len(all_files):
+            return
+        
+        current_file = all_files[current_idx]
+        csv_loc = os.path.join(output_csv_dir, current_file)
         if os.path.exists(csv_loc):
             return
         # user didn't save annotated file, so add the file back to the list
-        all_files.append(csv_path)
+        all_files.append(current_file)
 
     # Add clear function
     def on_clear_click():
         global current_idx
         relative_name = all_files[current_idx]
+        
         # Remove from mapping
-        if relative_name in mapping:
-            del mapping[relative_name]
+        file_base = relative_name[:-4]  # Remove .csv extension
+        if file_base in mapping:
+            del mapping[relative_name[:-4]]
             
             # Save updated mapping
             with open(mapping_file, "w") as f:
                 json.dump(mapping, f, indent=2)
+        
+        # Remove from labeled_files if present
+        if relative_name in labeled_files:
+            labeled_files.remove(relative_name)
+        
+        # Remove the annotated file if it exists
+        output_file = os.path.join(output_csv_dir, relative_name)
+        if os.path.exists(output_file):
+            os.remove(output_file)
         
         # Clear note and reset class selector
         note.value = ""
@@ -389,7 +464,7 @@ def main_app(doc: Document):
         load_file(relative_name)
         
         # Update file list to reflect changes
-        file_list.children = [file_list_title] + create_file_list()
+        update_file_list()
 
     # Add click handler for clear button
     bclear.on_click(on_clear_click)
