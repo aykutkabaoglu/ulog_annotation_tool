@@ -185,7 +185,7 @@ def main_app(doc: Document):
         css_classes=["main-content"]
     )
 
-    def create_file_list():       
+    def create_file_list():
         file_items = []
         
         # Group files by directory
@@ -199,6 +199,7 @@ def main_app(doc: Document):
             files_by_dir[dir_path].append(fname)
         
         # Create folder structure
+        buttons_by_file = {}  # Store buttons for later updates
         for dir_path, files in sorted(files_by_dir.items()):
             # Add folder header if not in root
             if dir_path != '.':
@@ -217,51 +218,47 @@ def main_app(doc: Document):
             
             # Add files in the current directory
             for fname in sorted(files):
-                is_labeled = fname in labeled_files
-                file_info = mapping.get(fname[:-4], {"annotations": []})
-                annotations = file_info.get("annotations", [])
-                
-                # Create toggle button for each file
-                button_type = "success" if is_labeled else "light"
-                
-                # Show only filename in button, not full path
-                display_name = os.path.basename(fname)
-                
-                if is_labeled and annotations:
-                    classes = ", ".join(set(ann["class"] for ann in annotations))
-                    annotation_count = len(annotations)
-                    label = f"✓ {display_name}\nClasses: {classes}\nAnnotations: {annotation_count}"
-                else:
-                    label = f"○ {display_name}"
-                
-                btn = Button(
-                    label=label,
-                    button_type=button_type,
-                    css_classes=["file-item", "file-labeled" if is_labeled else "file-unlabeled"],
-                    styles={
-                        "margin-left": "15px" if dir_path != '.' else "0px"  # Indent files in subfolders
-                    }
-                )
-                
-                # Add click handler
-                btn.js_on_click(CustomJS(
-                    args=dict(
-                        fname=fname,  # Keep full path for internal use
-                        source=source,
-                        loader=loader
-                    ),
-                    code="""
-                        source.data = {
-                            'data': ['load_file', fname]
-                        };
-                        source.change.emit();
-                    """
-                ))
-                
+                btn = create_file_button(fname)
+                buttons_by_file[fname] = btn
                 file_items.append(btn)
         
-        return file_items
+        return file_items, buttons_by_file
 
+    def create_file_button(fname):
+        is_labeled = fname in labeled_files
+        file_info = mapping.get(fname[:-4], {"annotations": []})
+        annotations = file_info.get("annotations", [])
+        
+        button_type = "success" if is_labeled else "light"
+        display_name = os.path.basename(fname)
+        
+        if is_labeled and annotations:
+            classes = ", ".join(set(ann["class"] for ann in annotations))
+            annotation_count = len(annotations)
+            label = f"✓ {display_name}\nClasses: {classes}\nAnnotations: {annotation_count}"
+        else:
+            label = f"○ {display_name}"
+        
+        btn = Button(
+            label=label,
+            button_type=button_type,
+            css_classes=["file-item", "file-labeled" if is_labeled else "file-unlabeled"],
+            styles={
+                "margin-left": "15px" if os.path.dirname(fname) != '.' else "0px"
+            }
+        )
+        
+        btn.js_on_click(CustomJS(
+            args=dict(fname=fname, source=source, loader=loader),
+            code="""
+                source.data = {
+                    'data': ['load_file', fname]
+                };
+                source.change.emit();
+            """
+        ))
+        
+        return btn
 
     # Add new function to handle file navigation
     def load_file(relative_name):
@@ -288,9 +285,6 @@ def main_app(doc: Document):
             return True
         return False
 
-    def update_file_list():
-        file_list.children = [file_list_title] + create_file_list()
-
     def on_next_click():
         global current_idx
         # Show loader and remove plots while loading
@@ -305,8 +299,7 @@ def main_app(doc: Document):
         
         current_idx = next_idx
         load_file(all_files[current_idx])
-        update_file_list()
-
+        update_single_button(all_files[current_idx])
 
     def on_prev_click():
         global current_idx
@@ -322,8 +315,7 @@ def main_app(doc: Document):
         
         current_idx = prev_idx
         load_file(all_files[current_idx])
-        update_file_list()
-
+        update_single_button(all_files[current_idx])
 
     def add_annotation_to_dataframe(df: pd.DataFrame, ranges: list, anomaly_class: str):
         """
@@ -343,7 +335,29 @@ def main_app(doc: Document):
                 df.loc[start:end, "anomaly"] = 1
                 df.loc[start:end, "anomaly_class"] = anomaly_class
 
-    # Update update_data_callback to handle only save and load_file actions
+    def update_single_button(fname):
+        if fname not in buttons_by_file:
+            return
+        
+        btn = buttons_by_file[fname]
+        is_labeled = fname in labeled_files
+        file_info = mapping.get(fname[:-4], {"annotations": []})
+        annotations = file_info.get("annotations", [])
+        
+        display_name = os.path.basename(fname)
+        
+        if is_labeled and annotations:
+            classes = ", ".join(set(ann["class"] for ann in annotations))
+            annotation_count = len(annotations)
+            label = f"✓ {display_name}\nClasses: {classes}\nAnnotations: {annotation_count}"
+        else:
+            label = f"○ {display_name}"
+        
+        btn.label = label
+        btn.button_type = "success" if is_labeled else "light"
+        btn.css_classes = ["file-item", "file-labeled" if is_labeled else "file-unlabeled"]
+
+    # Modify the update_data_callback to update single button
     def update_data_callback(attr, old, new):
         global current_idx
         if new.get("data") is None or len(new["data"]) == 0:
@@ -360,10 +374,7 @@ def main_app(doc: Document):
             current_idx = all_files.index(filename)
             new_path = os.path.join(csv_dir, filename)
             print(f"Loading file: {new_path}")
-
-            # Use the existing load_file function
             load_file(filename)
-            
             return
         
         # Handle save action
@@ -418,9 +429,12 @@ def main_app(doc: Document):
 
             print(f"Updated annotations for {file_base}")
             
+            # Update only the current file's button
+            update_single_button(current_file)
+            
             # After saving, automatically move to next file
             on_next_click()
-        
+
     def on_session_destroyed(session_context):
         global current_idx
         if current_idx >= len(all_files):
@@ -433,7 +447,7 @@ def main_app(doc: Document):
         # user didn't save annotated file, so add the file back to the list
         all_files.append(current_file)
 
-    # Add clear function
+    # Modify on_clear_click to update single button
     def on_clear_click():
         global current_idx
         relative_name = all_files[current_idx]
@@ -460,23 +474,25 @@ def main_app(doc: Document):
         note.value = ""
         class_select.value = anomaly_classes[0]
         
+        # Update only the cleared file's button
+        update_single_button(relative_name)
+        
         # Reload the current file to clear annotations from plot
         load_file(relative_name)
-        
-        # Update file list to reflect changes
-        update_file_list()
 
-    # Add click handler for clear button
-    bclear.on_click(on_clear_click)
 
+    
+
+    # Initialize file list
+    file_items, buttons_by_file = create_file_list()
     file_list = column(
         file_list_title,
-        *create_file_list(),
+        *file_items,
         css_classes=["file-list-panel"],
         styles={
             "overflow-y": "auto",
             "height": "100vh",
-            "flex": "0.25"  # Take up 15% of the space
+            "flex": "0.25"
         }
     )
 
@@ -484,7 +500,8 @@ def main_app(doc: Document):
     load_file(all_files[current_idx])
 
     ##### PAGE LAYOUT #####
-
+    # Add click handler for clear button
+    bclear.on_click(on_clear_click)
     # Add the button click handlers
     bnext.on_click(on_next_click)
     bprev.on_click(on_prev_click)
