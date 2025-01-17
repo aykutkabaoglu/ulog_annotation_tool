@@ -8,6 +8,8 @@
 - Clear button to remove all annotations in the current file
 - Highlighted annotated files in the file list
 - Note taking for each annotation
+- Keep folder hierarchy while creating csv files from the ulog files located under ulg_dir
+- Use folder hierarchy while showing the file buttons on the file list panel
 
 ## Setup and Installation
 
