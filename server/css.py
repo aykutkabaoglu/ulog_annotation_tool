@@ -7,7 +7,12 @@ PLOT_SETTINGS = {
     'axis_label_text_color': '#e0e0e0',
     'major_label_text_color': '#e0e0e0',
     'grid_line_color': '#404040',
-    'grid_line_alpha': 0.3
+    'grid_line_alpha': 0.3,
+    'legend_background_fill_color': '#545454',
+    'legend_background_fill_alpha': 0.7,
+    'legend_border_line_color': '#000000',
+    'legend_border_line_width': 1,
+    'legend_label_text_color': '#e0e0e0'
 }
 
 # Layout settings
@@ -37,10 +42,11 @@ def apply_plot_theme(plot):
     plot.grid.grid_line_color = PLOT_SETTINGS['grid_line_color']
     plot.grid.grid_line_alpha = PLOT_SETTINGS['grid_line_alpha']
 
-    # Set legend colors
-    plot.legend.background_fill_color = '#545454'
-    plot.legend.background_fill_alpha = 0.7
-    plot.legend.border_line_color = '#000000'
-    plot.legend.border_line_width = 1
-    plot.legend.label_text_color = '#000000'
+    # Set legend properties through the theme settings
+    if plot.legend:
+        plot.legend.background_fill_color = PLOT_SETTINGS['legend_background_fill_color']
+        plot.legend.background_fill_alpha = PLOT_SETTINGS['legend_background_fill_alpha']
+        plot.legend.border_line_color = PLOT_SETTINGS['legend_border_line_color']
+        plot.legend.border_line_width = PLOT_SETTINGS['legend_border_line_width']
+        plot.legend.label_text_color = PLOT_SETTINGS['legend_label_text_color']
 
