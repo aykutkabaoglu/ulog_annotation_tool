@@ -294,7 +294,6 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 cwd = os.path.dirname(os.path.abspath(__file__))
 ulg_dir = os.path.join(cwd, "../data/ulg_files")
-
 output_csv_dir = os.path.join(cwd, "../data/csv_files")
 
 # make sure output csv dir exist
@@ -303,19 +302,25 @@ if not os.path.isdir(output_csv_dir):
 
 ulg_paths = []
 for root, subfolders, files in os.walk(ulg_dir):
-    if not subfolders:
-        dir_name = os.path.basename(root)
-        dir_name = os.path.join(output_csv_dir, dir_name)
-        if not os.path.isdir(dir_name):
-            os.makedirs(dir_name)
-            print("New directory:", dir_name)
+    # Get relative path from ulg_dir to current folder
+    rel_path = os.path.relpath(root, ulg_dir)
+    
+    # Only create output directory if there are .ulg files
+    has_ulg_files = any(file.endswith('.ulg') for file in files)
+    if has_ulg_files:
+        output_path = os.path.join(output_csv_dir, rel_path)
+        if not os.path.isdir(output_path):
+            os.makedirs(output_path)
+            print("New directory:", output_path)
 
     for i, file in enumerate(files):
         if not file.endswith('.ulg'):
             continue
         ulog_path = os.path.join(root, file)
-
-        csv_loc = os.path.join(dir_name, os.path.basename(ulog_path)[:-4] + ".csv")
+        
+        # Create csv path maintaining the same folder structure
+        rel_csv_path = os.path.join(rel_path, os.path.basename(ulog_path)[:-4] + ".csv")
+        csv_loc = os.path.join(output_csv_dir, rel_csv_path)
 
         # do not process files that have already been processed if --skip-processed is set
         if skip_processed:

@@ -34,14 +34,28 @@ if os.path.exists(mapping_file):
         mapping = json.load(f)
 
 all_files = []
-for root, subfolders, files in os.walk(csv_dir):
-    if not subfolders:
-        all_files.extend([os.path.join(os.path.basename(root), file) for file in files])
+for root, _, files in os.walk(csv_dir):
+    for file in files:
+        if file.endswith('.csv'):
+            # Get path relative to csv_dir
+            rel_path = os.path.relpath(root, csv_dir)
+            if rel_path == '.':
+                rel_file = file
+            else:
+                rel_file = os.path.join(rel_path, file)
+            all_files.append(rel_file)
 
 labeled_files = []
-for root, subfolders, files in os.walk(output_csv_dir):
-    if not subfolders:
-        labeled_files.extend([os.path.join(os.path.basename(root), file) for file in files])      
+for root, _, files in os.walk(output_csv_dir):
+    for file in files:
+        if file.endswith('.csv'):
+            # Get path relative to output_csv_dir
+            rel_path = os.path.relpath(root, output_csv_dir)
+            if rel_path == '.':
+                rel_file = file
+            else:
+                rel_file = os.path.join(rel_path, file)
+            labeled_files.append(rel_file)
 
 current_idx = 0
 
