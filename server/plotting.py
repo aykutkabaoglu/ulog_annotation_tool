@@ -317,32 +317,33 @@ def get_annotation_box_and_label(file_annotations, plot_title):
         ranges = annotation["ranges"]
         # Find ranges that match this plot's column
         for col, col_ranges in ranges:
-            if col == plot_title:
-                # Create box annotations for each range
-                for start, end in col_ranges:
-                    box = BoxAnnotation(
-                        left=start,
-                        right=end,
-                        fill_alpha=0.2,
-                        fill_color='red',
-                        level='overlay'
-                    )
+            if col == plot_title: color = 'red' 
+            else: color = 'green'
+            # Create box annotations for each range
+            for start, end in col_ranges:
+                box = BoxAnnotation(
+                    left=start,
+                    right=end,
+                    fill_alpha=0.2,
+                    fill_color=color,
+                    level='overlay'
+                )
 
-                    # Add label at the top of the box
-                    label = Label(
-                        x= (start+end)/2,
-                        y= 0,  # Position at bottom instead of top
-                        text=anomaly_class,
-                        text_color='white',  # White text
-                        text_font_size='12pt',  # Larger font
-                        text_font_style='bold',
-                        background_fill_color='rgba(0,0,0,0.7)',  # Semi-transparent black background
-                        background_fill_alpha=0.7,
-                        text_align='center',
-                        border_line_color='green',  # White border
-                        border_line_alpha=0.7,
-                    )
-                    box_and_labels.append((box, label))
+                # Add label at the top of the box
+                label = Label(
+                    x= (start+end)/2,
+                    y= 0,  # Position at bottom instead of top
+                    text=anomaly_class,
+                    text_color='white',  # White text
+                    text_font_size='12pt',  # Larger font
+                    text_font_style='bold',
+                    background_fill_color='rgba(0,0,0,0.7)',  # Semi-transparent black background
+                    background_fill_alpha=0.7,
+                    text_align='center',
+                    border_line_color='green',  # White border
+                    border_line_alpha=0.7,
+                )
+                box_and_labels.append((box, label))
     return box_and_labels
 
 
