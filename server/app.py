@@ -464,19 +464,6 @@ def main_app(doc: Document):
             
             # After saving, automatically move to next file
             on_next_click()
-
-    def on_session_destroyed(session_context):
-        global current_idx
-        if current_idx >= len(all_files):
-            return
-        
-        current_file = all_files[current_idx]
-        csv_loc = os.path.join(output_csv_dir, current_file)
-        if os.path.exists(csv_loc):
-            return
-        # user didn't save annotated file, so add the file back to the list
-        all_files.append(current_file)
-
     # Modify on_clear_click to update single button
     def on_clear_click():
         global current_idx
@@ -589,8 +576,6 @@ def main_app(doc: Document):
 
     # Update theme assignment
     doc.add_root(layout)
-    doc.on_session_destroyed(on_session_destroyed)
-
 
 
 if __name__ == "__main__":
