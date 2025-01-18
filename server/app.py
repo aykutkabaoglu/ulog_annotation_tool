@@ -224,25 +224,43 @@ def main_app(doc: Document):
         
         return file_items, buttons_by_file
 
-    def create_file_button(fname):
+    def get_button_properties(fname):
+        """Helper function to determine button type and label based on file annotations"""
         is_labeled = fname in labeled_files
         file_info = mapping.get(fname[:-4], {"annotations": []})
         annotations = file_info.get("annotations", [])
-        
-        button_type = "success" if is_labeled else "light"
         display_name = os.path.basename(fname)
         
+        # Default values for unlabeled files
+        button_type = "light"
+        label = f"○ {display_name}"
+        
         if is_labeled and annotations:
-            classes = ", ".join(set(ann["class"] for ann in annotations))
+            classes = set(ann["class"] for ann in annotations)
+            if all(c == "Normal" for c in classes):
+                button_type = "primary"  # Blue for Normal
+            elif all(c == "Uncategorized" for c in classes):
+                button_type = "warning"  # Orange for Uncategorized
+            else:
+                button_type = "success"  # Green for other anomalies
+            
+            classes_str = ", ".join(classes)
             annotation_count = len(annotations)
-            label = f"✓ {display_name}\nClasses: {classes}\nAnnotations: {annotation_count}"
-        else:
-            label = f"○ {display_name}"
+            label = f"✓ {display_name}\nClasses: {classes_str}\nAnnotations: {annotation_count}"
+        
+        return {
+            "button_type": button_type,
+            "label": label,
+            "css_classes": ["file-item", "file-labeled" if is_labeled else "file-unlabeled"]
+        }
+
+    def create_file_button(fname):
+        props = get_button_properties(fname)
         
         btn = Button(
-            label=label,
-            button_type=button_type,
-            css_classes=["file-item", "file-labeled" if is_labeled else "file-unlabeled"],
+            label=props["label"],
+            button_type=props["button_type"],
+            css_classes=props["css_classes"],
             styles={
                 "margin-left": "15px" if os.path.dirname(fname) != '.' else "0px"
             }
@@ -340,22 +358,11 @@ def main_app(doc: Document):
             return
         
         btn = buttons_by_file[fname]
-        is_labeled = fname in labeled_files
-        file_info = mapping.get(fname[:-4], {"annotations": []})
-        annotations = file_info.get("annotations", [])
+        props = get_button_properties(fname)
         
-        display_name = os.path.basename(fname)
-        
-        if is_labeled and annotations:
-            classes = ", ".join(set(ann["class"] for ann in annotations))
-            annotation_count = len(annotations)
-            label = f"✓ {display_name}\nClasses: {classes}\nAnnotations: {annotation_count}"
-        else:
-            label = f"○ {display_name}"
-        
-        btn.label = label
-        btn.button_type = "success" if is_labeled else "light"
-        btn.css_classes = ["file-item", "file-labeled" if is_labeled else "file-unlabeled"]
+        btn.label = props["label"]
+        btn.button_type = props["button_type"]
+        btn.css_classes = props["css_classes"]
 
     # Modify the update_data_callback to update single button
     def update_data_callback(attr, old, new):
