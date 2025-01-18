@@ -133,6 +133,17 @@ def main_app(doc: Document):
                 "text-align": "center"}
     )
 
+    # Add anomaly classes display
+    anomaly_classes_display = Div(
+        text="",
+        css_classes=["anomaly-classes"],
+        width_policy="max",
+        styles={"font-size": "18px",
+                "color": "#909090",
+                "text-align": "center",
+                "margin-top": "5px"}
+    )
+
     # Create file list panel
     file_list_title = Div(
         text="Files in Directory",
@@ -149,6 +160,7 @@ def main_app(doc: Document):
     header = column(
         row(title),
         row(filename_display),
+        row(anomaly_classes_display),
         row(
             column(
                 row(
@@ -285,6 +297,17 @@ def main_app(doc: Document):
         
         # Update current_idx to match the loaded file
         current_idx = all_files.index(relative_name)
+        
+        # Update anomaly classes display
+        file_base = relative_name[:-4]
+        if file_base in mapping:
+            classes = set()
+            for annotation in mapping[file_base]["annotations"]:
+                classes.add(annotation["class"])
+            classes_text = ", ".join(sorted(classes))
+            anomaly_classes_display.text = f"Annotated classes: {classes_text}"
+        else:
+            anomaly_classes_display.text = "No annotations"
         
         csv_path = os.path.join(csv_dir, relative_name)
         if csv_path and os.path.exists(csv_path):
