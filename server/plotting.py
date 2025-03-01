@@ -272,19 +272,110 @@ def plot_df(df: pd.DataFrame, mapping: dict = None, file_name: str = None):
     alpha = 0.7
     colors = itertools.cycle(palette)
 
+    # Define flight mode colors
+    flight_mode_colors = {
+        0: "#ff3300",  # Manual
+        1: "#2d2d4d",  # Altitude
+        2: "#2d4d2d",  # Position
+        3: "#4d2d2d",  # Mission
+        4: "#4d4d2d",  # Loiter
+        5: "#2d4d4d",  # Return
+        7: "#3d2d4d",  # Auto RTL
+        12: "#4d3d2d",  # Descend
+        14: "#3d4d2d",  # Offboard
+        15: "#4d2d3d",  # Stabilized
+        17: "#3d2d2d",  # Auto Takeoff
+        18: "#2d2d3d",  # Auto Land
+    }
+    flight_mode_labels = {
+        0: "Manual",
+        1: "Altitude",
+        2: "Position",
+        3: "Mission",
+        4: "Loiter",
+        5: "Return",
+        7: "Auto RTL",
+        12: "Descend",
+        14: "Offboard",
+        15: "Stabilized",
+        17: "Auto Takeoff",
+        18: "Auto Land",
+    }
+
     # Check if we have annotations for this file in mapping
     if mapping and file_name and file_name[:-4] in mapping:
         file_annotations = mapping[file_name[:-4]]["annotations"]
     else:
         file_annotations = []
 
+    # Get flight mode changes if available in the dataframe
+    flight_modes = []
+    if 'vehicle_status.nav_state' in df.columns:
+        # If there are no mode changes, create a single segment for the entire timeline
+        if len(df['vehicle_status.nav_state'].unique()) == 1:
+            flight_modes.append({
+                'start': df['timestamp'].iloc[0],
+                'end': df['timestamp'].iloc[-1],
+                'mode': df['vehicle_status.nav_state'].iloc[0]
+            })
+        else:
+            mode_changes = df['vehicle_status.nav_state'].diff().fillna(0) != 0
+            change_indices = df.index[mode_changes].tolist()
+            
+            # Add start and end indices
+            if 0 not in change_indices:
+                change_indices.insert(0, 0)
+            if len(df) - 1 not in change_indices:
+                change_indices.append(len(df) - 1)
+            
+            # Create flight mode segments
+            for i in range(len(change_indices) - 1):
+                start_idx = change_indices[i]
+                end_idx = change_indices[i + 1]
+                mode = df['vehicle_status.nav_state'].iloc[start_idx]
+                flight_modes.append({
+                    'start': df['timestamp'].iloc[start_idx],
+                    'end': df['timestamp'].iloc[end_idx],
+                    'mode': mode
+                })
+
+    # Create a figure for each plot block
     for i, f in enumerate(figures):
         f["model"] = figure(
             width=1000, 
             height=500, 
             title=f["title"]
         )
-        
+
+         # Add flight mode background boxes
+        for mode_segment in flight_modes:
+            color = flight_mode_colors.get(mode_segment['mode'], "#1a1a1a")
+            box = BoxAnnotation(
+                left=mode_segment['start'],
+                right=mode_segment['end'],
+                fill_color=color,
+                fill_alpha=0.2,
+                level='underlay',
+            )
+            f["model"].add_layout(box)
+            
+            # Add flight mode labels over boxes
+            label = Label(
+                x=(mode_segment['start'] + mode_segment['end'])/2,  # Center of box
+                y=0.95,
+                text=str(flight_mode_labels.get(mode_segment['mode'])),
+                text_color='white',
+                text_font_size='10pt',
+                text_align='center',
+                background_fill_color=color,
+                background_fill_alpha=0.7,
+                border_line_color=color,
+                border_line_alpha=0.7,
+                y_units='screen'  # Use screen coordinates for y position
+            )
+            f["model"].add_layout(label)
+
+        # Plot each column in the figure (data lines)
         for p in f["plots"]:
             try:
                 # Normal plotting for non-quaternion data
@@ -312,6 +403,7 @@ def plot_df(df: pd.DataFrame, mapping: dict = None, file_name: str = None):
                 #print("Couldn't find", p["col"])
                 pass
                 
+        # Add annotations to the plot
         box_and_labels = get_annotation_box_and_label(file_annotations, f["title"])
         for box, label in box_and_labels:
             f["model"].add_layout(box)
