@@ -228,8 +228,8 @@ def get_custom_topics() -> dict:
 
 def extract_topics(ulog) -> List[MissionData] | str:
     # Get all topics and their attributes
-    #params = get_all_topics(ulog)
-    params = get_custom_topics()
+    params = get_all_topics(ulog)
+    #params = get_custom_topics()
     # create each column for the given attributes in params
     cols = []
     for dataset, attrs in params.items():
