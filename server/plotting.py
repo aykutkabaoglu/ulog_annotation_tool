@@ -14,6 +14,7 @@ figures = [
             {"col": "vehicle_local_position.x", "label": "X"},
             {"col": "vehicle_local_position_setpoint.x", "label": "X Setpoint"},
             {"col": "vehicle_visual_odometry.x", "label": "VO X"},
+            {"col": "vehicle_vision_position.x", "label": "VO X"},
         ],
     },
     {
@@ -28,6 +29,7 @@ figures = [
             {"col": "vehicle_local_position.y", "label": "Y"},
             {"col": "vehicle_local_position_setpoint.y", "label": "Y Setpoint"},
             {"col": "vehicle_visual_odometry.y", "label": "VO Y"},
+            {"col": "vehicle_vision_position.y", "label": "VO Y"},
         ],
     },
     {
@@ -41,12 +43,13 @@ figures = [
         "plots": [
             {"col": "vehicle_local_position.z", "label": "Z"}, # invert the data
             {"col": "vehicle_local_position_setpoint.z", "label": "Z Setpoint"}, # invert the data
-            {"col": "vehicle_air_data.baro_alt_meter", "label": "Altitude(m)"},
+            #{"col": "vehicle_air_data.baro_alt_meter", "label": "Altitude(m)"},
             {"col": "distance_sensor.current_distance", "label": "Distance Sensor"},
             {"col": "vehicle_visual_odometry.z", "label": "VO Z"},
-            {"col": "gps_position.alt", "label": "GPS Alt"},
-            {"col": "sensor_combined.alt", "label": "Sensor Alt"},
-            {"col": "vehicle_global_position.alt", "label": "Global Position Alt"},
+            {"col": "vehicle_vision_position.z", "label": "VO Z"},
+            #{"col": "vehicle_gps_position.alt", "label": "GPS Alt"},
+            #{"col": "sensor_combined.alt", "label": "Sensor Alt"},
+            #{"col": "vehicle_global_position.alt", "label": "Global Position Alt"},
         ],
     },
     {
@@ -64,6 +67,17 @@ figures = [
             {"col": "vehicle_gps_position.lat", "label": "GPS Latitude"},
             {"col": "vehicle_gps_position.lon", "label": "GPS Longitude"},
             {"col": "vehicle_gps_position.alt", "label": "GPS Altitude"},   
+        ],
+    },
+    {
+        "title": "External Position",
+        "plots": [
+            {"col": "vehicle_vision_position.x", "label": "VO X"},
+            {"col": "vehicle_vision_position.y", "label": "VO Y"},
+            {"col": "vehicle_vision_position.z", "label": "VO Z"},
+            {"col": "vehicle_visual_odometry.x", "label": "VO X"},
+            {"col": "vehicle_visual_odometry.y", "label": "VO Y"},
+            {"col": "vehicle_visual_odometry.z", "label": "VO Z"},
         ],
     },
     {
