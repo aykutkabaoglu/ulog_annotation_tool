@@ -425,19 +425,24 @@ def main_app(doc: Document):
                 "annotations": []
             })
             
-            # Print the data being saved
-            print(f"Class: {selected_class}")  # Debug print
+            # Convert datetime to timestamp using DataFrame indices
+            ranges = new["data"]
+            for name, range_data in ranges:
+                for i, (start, end) in enumerate(range_data):
+                    epoch_start = start * 1e3 # we lose ms precision because of javascript Date object
+                    epoch_end = end * 1e3
+                    range_data[i] = [int(epoch_start), int(epoch_end)]
             
             annotation = {
                 "class": selected_class,
                 "note": note or "",
                 "timestamp": pd.Timestamp.now().isoformat(),
-                "ranges": new["data"]
+                "ranges": ranges
             }
             current_annotations["annotations"].append(annotation)
             
-            # Save annotations to DataFrame
-            add_annotation_to_dataframe(df, new["data"], selected_class)
+            # Save annotations to DataFrame using the epoch timestamps
+            add_annotation_to_dataframe(df, ranges, selected_class)
             
             # Save annotated CSV
             output_file = os.path.join(output_csv_dir, current_file)
@@ -464,6 +469,7 @@ def main_app(doc: Document):
             
             # After saving, automatically move to next file
             on_next_click()
+
     # Modify on_clear_click to update single button
     def on_clear_click():
         global current_idx

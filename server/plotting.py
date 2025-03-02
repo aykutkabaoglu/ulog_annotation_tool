@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import itertools
 from bokeh.plotting import figure
-from bokeh.models import CustomJS, Model, BoxAnnotation, Label
+from bokeh.models import CustomJS, Model, BoxAnnotation, Label, CustomJSTickFormatter
 from bokeh.palettes import Dark2_5 as palette
 from css import apply_plot_theme
 
@@ -272,6 +272,9 @@ def plot_df(df: pd.DataFrame, mapping: dict = None, file_name: str = None):
     alpha = 0.7
     colors = itertools.cycle(palette)
 
+    # Convert timestamp to datetime for display
+    df['datetime'] = pd.to_datetime(df['timestamp'], unit='us')
+
     # Define flight mode colors
     flight_mode_colors = {
         0: "#ff3300",  # Manual
@@ -314,8 +317,8 @@ def plot_df(df: pd.DataFrame, mapping: dict = None, file_name: str = None):
         # If there are no mode changes, create a single segment for the entire timeline
         if len(df['vehicle_status.nav_state'].unique()) == 1:
             flight_modes.append({
-                'start': df['timestamp'].iloc[0],
-                'end': df['timestamp'].iloc[-1],
+                'start': df['datetime'].iloc[0],
+                'end': df['datetime'].iloc[-1],
                 'mode': df['vehicle_status.nav_state'].iloc[0]
             })
         else:
@@ -334,8 +337,8 @@ def plot_df(df: pd.DataFrame, mapping: dict = None, file_name: str = None):
                 end_idx = change_indices[i + 1]
                 mode = df['vehicle_status.nav_state'].iloc[start_idx]
                 flight_modes.append({
-                    'start': df['timestamp'].iloc[start_idx],
-                    'end': df['timestamp'].iloc[end_idx],
+                    'start': df['datetime'].iloc[start_idx],
+                    'end': df['datetime'].iloc[end_idx],
                     'mode': mode
                 })
 
@@ -344,10 +347,28 @@ def plot_df(df: pd.DataFrame, mapping: dict = None, file_name: str = None):
         f["model"] = figure(
             width=1000, 
             height=500, 
-            title=f["title"]
+            title=f["title"],
+            x_axis_label='Time (HH:MM:SS)',  # Add x-axis label
         )
 
-         # Add flight mode background boxes
+        # Format x-axis to show full date and time
+        f["model"].xaxis.formatter = CustomJSTickFormatter(code="""
+            // Convert timestamp to Date object
+            const date = new Date(tick);
+            const year = date.getFullYear();
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const day = date.getDate().toString().padStart(2, '0');
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            const seconds = date.getSeconds().toString().padStart(2, '0');
+            const miliseconds = (date.getMilliseconds()).toString().padStart(3, '0');
+            return `${hours}:${minutes}:${seconds}`;
+        """)
+
+        # Rotate x-axis labels for better readability
+        f["model"].xaxis.major_label_orientation = 0.3
+
+        # Add flight mode background boxes
         for mode_segment in flight_modes:
             color = flight_mode_colors.get(mode_segment['mode'], "#1a1a1a")
             box = BoxAnnotation(
@@ -361,7 +382,7 @@ def plot_df(df: pd.DataFrame, mapping: dict = None, file_name: str = None):
             
             # Add flight mode labels over boxes
             label = Label(
-                x=(mode_segment['start'] + mode_segment['end'])/2,  # Center of box
+                x=mode_segment['start'] + pd.Timedelta((mode_segment['end'] - mode_segment['start'])/2),
                 y=0.95,
                 text=str(flight_mode_labels.get(mode_segment['mode'])),
                 text_color='white',
@@ -371,7 +392,7 @@ def plot_df(df: pd.DataFrame, mapping: dict = None, file_name: str = None):
                 background_fill_alpha=0.7,
                 border_line_color=color,
                 border_line_alpha=0.7,
-                y_units='screen'  # Use screen coordinates for y position
+                y_units='screen'
             )
             f["model"].add_layout(label)
 
@@ -380,7 +401,7 @@ def plot_df(df: pd.DataFrame, mapping: dict = None, file_name: str = None):
             try:
                 # Normal plotting for non-quaternion data
                 y = df[p["col"]]
-                x = df['timestamp']
+                x = df['datetime']
 
                 # Check if this is a quaternion plot
                 if f["title"] == "Attitude.Roll":
@@ -400,9 +421,8 @@ def plot_df(df: pd.DataFrame, mapping: dict = None, file_name: str = None):
                     alpha=alpha
                 )
             except Exception as e:
-                #print("Couldn't find", p["col"])
                 pass
-                
+
         # Add annotations to the plot
         box_and_labels = get_annotation_box_and_label(file_annotations, f["title"])
         for box, label in box_and_labels:
@@ -427,26 +447,31 @@ def get_annotation_box_and_label(file_annotations, plot_title):
             else: color = 'green'
             # Create box annotations for each range
             for start, end in col_ranges:
+                # Convert timestamp microseconds to datetime
+                start_dt = pd.to_datetime(start, unit='us')
+                end_dt = pd.to_datetime(end, unit='us')
+                
                 box = BoxAnnotation(
-                    left=start,
-                    right=end,
+                    left=start_dt,
+                    right=end_dt,
                     fill_alpha=0.2,
                     fill_color=color,
                     level='overlay'
                 )
 
-                # Add label at the top of the box
+                # Add label at the center of the box
+                center_dt = start_dt + (end_dt - start_dt)/2
                 label = Label(
-                    x= (start+end)/2,
-                    y= 0,  # Position at bottom instead of top
+                    x=center_dt,
+                    y=0,
                     text=anomaly_class,
-                    text_color='white',  # White text
-                    text_font_size='12pt',  # Larger font
+                    text_color='white',
+                    text_font_size='12pt',
                     text_font_style='bold',
                     background_fill_color='rgba(0,0,0,0.7)',  # Semi-transparent black background
                     background_fill_alpha=0.7,
                     text_align='center',
-                    border_line_color='green',  # White border
+                    border_line_color='green',
                     border_line_alpha=0.7,
                 )
                 box_and_labels.append((box, label))
