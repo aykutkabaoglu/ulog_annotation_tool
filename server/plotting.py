@@ -345,10 +345,11 @@ def plot_df(df: pd.DataFrame, mapping: dict = None, file_name: str = None):
     # Create a figure for each plot block
     for i, f in enumerate(figures):
         f["model"] = figure(
-            width=1000, 
-            height=500, 
+            sizing_mode="stretch_width",  # Make plot stretch to container width
+            aspect_ratio=3,  # Width:Height ratio of 3:1
             title=f["title"],
-            x_axis_label='Time (HH:MM:SS)',  # Add x-axis label
+            x_axis_label='Time (HH:MM:SS)',
+            margin=(30, 50, 30, 50),  # (top, right, bottom, left) margins in pixels
         )
 
         # Format x-axis to show full date and time
