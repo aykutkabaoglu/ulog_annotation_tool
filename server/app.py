@@ -71,6 +71,43 @@ def main_app(doc: Document):
     # Customize your classes  
     anomaly_classes = ['Uncategorized', 'Normal','Mechanical', 'Altitude', 'External Position', 
                        'Heading', 'Global Position', 'Electrical']  
+    
+    # Calculate statistics
+    total_files = len(all_files)
+    labeled_count = len(labeled_files)
+    unlabeled_count = total_files - labeled_count
+    
+    # Count files by class
+    class_counts = {cls: 0 for cls in anomaly_classes}
+    for file_base, file_data in mapping.items():
+        file_classes = set()
+        for annotation in file_data.get("annotations", []):
+            file_classes.add(annotation["class"])
+        for cls in file_classes:
+            class_counts[cls] = class_counts.get(cls, 0) + 1
+    
+    # Create statistics display
+    stats_text = f"""
+        <div style="font-size: 14px; color: #FFFFFF; text-align: left; padding: 10px;">
+            <h3 style="color: #909090; margin-bottom: 10px;">File Statistics:</h3>
+            <p>Total Files: {total_files}</p>
+            <p>Labeled Files: {labeled_count}</p>
+            <p>Unlabeled Files: {unlabeled_count}</p>
+            <h4 style="color: #909090; margin: 10px 0;">Classifications:</h4>
+            {''.join(f'<p>{cls}: {count}</p>' for cls, count in class_counts.items() if count > 0)}
+        </div>
+    """
+    
+    stats_display = Div(
+        text=stats_text,
+        css_classes=["stats-display"],
+        styles={
+            "background": "rgba(32, 32, 32, 0.8)",
+            "border-radius": "5px",
+            "padding": "10px",
+            "margin-bottom": "20px"
+        }
+    )
         
     bokeh_models = []  # Initialize empty list for models
     
@@ -156,7 +193,7 @@ def main_app(doc: Document):
     # Add clear button in the header section where other buttons are defined
     bclear = Button(label="Clear", button_type="danger")
 
-    # Update the header layout to include the loader
+    # Update the header layout to include the loader and stats
     header = column(
         row(title),
         row(filename_display),
@@ -173,7 +210,7 @@ def main_app(doc: Document):
                     bprev,
                     bnext,
                     bsave,
-                    bclear,  # Add clear button
+                    bclear,
                     css_classes=["controls"],
                     styles={"align-items": "center"}
                 ),
@@ -181,7 +218,7 @@ def main_app(doc: Document):
             css_classes=["controls"]
         ),
         css_classes=["nav"],
-        styles={"align-items": "center"}  # Center align all items in header
+        styles={"align-items": "center"}
     )
 
     main_content = column(
@@ -387,7 +424,34 @@ def main_app(doc: Document):
         btn.button_type = props["button_type"]
         btn.css_classes = props["css_classes"]
 
-    # Modify the update_data_callback to update single button
+    # Update the stats when saving annotations
+    def update_stats_display():
+        nonlocal stats_display
+        labeled_count = len(labeled_files)
+        unlabeled_count = len(all_files) - labeled_count
+        
+        # Recount files by class
+        class_counts = {cls: 0 for cls in anomaly_classes}
+        for file_base, file_data in mapping.items():
+            file_classes = set()
+            for annotation in file_data.get("annotations", []):
+                file_classes.add(annotation["class"])
+            for cls in file_classes:
+                class_counts[cls] = class_counts.get(cls, 0) + 1
+        
+        stats_text = f"""
+            <div style="font-size: 14px; color: #FFFFFF; text-align: left; padding: 10px;">
+                <h3 style="color: #909090; margin-bottom: 10px;">File Statistics:</h3>
+                <p>Total Files: {len(all_files)}</p>
+                <p>Labeled Files: {labeled_count}</p>
+                <p>Unlabeled Files: {unlabeled_count}</p>
+                <h4 style="color: #909090; margin: 10px 0;">Classifications:</h4>
+                {''.join(f'<p>{cls}: {count}</p>' for cls, count in class_counts.items() if count > 0)}
+            </div>
+        """
+        stats_display.text = stats_text
+
+    # Modify the update_data_callback to update single button and refresh stats
     def update_data_callback(attr, old, new):
         global current_idx
         if new.get("data") is None or len(new["data"]) == 0:
@@ -467,10 +531,13 @@ def main_app(doc: Document):
             # Update only the current file's button
             update_single_button(current_file)
             
+            # Update statistics display
+            update_stats_display()
+            
             # After saving, automatically move to next file
             on_next_click()
 
-    # Modify on_clear_click to update single button
+    # Modify on_clear_click to update single button and refresh stats
     def on_clear_click():
         global current_idx
         relative_name = all_files[current_idx]
@@ -500,16 +567,20 @@ def main_app(doc: Document):
         # Update only the cleared file's button
         update_single_button(relative_name)
         
+        # Update statistics display
+        update_stats_display()
+        
         # Reload the current file to clear annotations from plot
         load_file(relative_name)
 
 
     
 
-    # Initialize file list
+    # Initialize file list with stats at the bottom
     file_items, buttons_by_file = create_file_list()
     file_list = column(
         file_list_title,
+        stats_display,
         *file_items,
         css_classes=["file-list-panel"],
         styles={
