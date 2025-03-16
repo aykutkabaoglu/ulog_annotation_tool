@@ -19,14 +19,11 @@ import json
 import pandas as pd
 cwd = os.path.dirname(os.path.abspath(__file__))
 csv_dir = os.path.join(cwd, "../data/csv_files")
-output_csv_dir = os.path.join(cwd, "../data/annotated_csv_files")
-mapping_file = os.path.join(cwd, "../data/annotated_csv_files/mapping.json")
+mapping_file = os.path.join(cwd, "../data/mapping.json")
 
 # make sure files and dirs exist
 if not os.path.isdir(csv_dir):
     os.makedirs(csv_dir)
-if not os.path.isdir(output_csv_dir):
-    os.makedirs(output_csv_dir)
 
 mapping = {}
 if os.path.exists(mapping_file):
@@ -45,17 +42,7 @@ for root, _, files in os.walk(csv_dir):
                 rel_file = os.path.join(rel_path, file)
             all_files.append(rel_file)
 
-labeled_files = []
-for root, _, files in os.walk(output_csv_dir):
-    for file in files:
-        if file.endswith('.csv'):
-            # Get path relative to output_csv_dir
-            rel_path = os.path.relpath(root, output_csv_dir)
-            if rel_path == '.':
-                rel_file = file
-            else:
-                rel_file = os.path.join(rel_path, file)
-            labeled_files.append(rel_file)
+labeled_files = [f"{key}.csv" for key in mapping.keys()]
 
 # Sort all_files to ensure consistent order
 all_files.sort()
@@ -63,7 +50,7 @@ all_files.sort()
 # Find first unannotated file for initial load
 current_idx = 0
 for idx, file in enumerate(all_files):
-    if file not in labeled_files:
+    if file[:-4] not in mapping:  # Remove .csv extension when checking mapping
         current_idx = idx
         break
 
@@ -395,24 +382,6 @@ def main_app(doc: Document):
         load_file(all_files[current_idx])
         update_single_button(all_files[current_idx])
 
-    def add_annotation_to_dataframe(df: pd.DataFrame, ranges: list, anomaly_class: str):
-        """
-        Add annotation to dataframe
-        
-        Args:
-            df: DataFrame to annotate
-            ranges: List of [start, end] ranges for anomalies
-            anomaly_class: Class label for the anomaly
-        """
-        if "anomaly" not in df.columns:
-            df["anomaly"] = 0
-            df["anomaly_class"] = ""
-
-        for _, range_data in ranges:
-            for start, end in range_data:
-                df.loc[start:end, "anomaly"] = 1
-                df.loc[start:end, "anomaly_class"] = anomaly_class
-
     def update_single_button(fname):
         if fname not in buttons_by_file:
             return
@@ -505,19 +474,6 @@ def main_app(doc: Document):
             }
             current_annotations["annotations"].append(annotation)
             
-            # Save annotations to DataFrame using the epoch timestamps
-            add_annotation_to_dataframe(df, ranges, selected_class)
-            
-            # Save annotated CSV
-            output_file = os.path.join(output_csv_dir, current_file)
-            
-            annotation_subfoler = os.path.dirname(output_file)
-            if not os.path.isdir(annotation_subfoler):
-                os.makedirs(annotation_subfoler)
-            
-            print(f"Saving annotated file to {output_file}")  # Debug print
-            df.to_csv(output_file, index=False)
-            
             # Update mapping
             mapping[file_base] = current_annotations
             labeled_files.append(current_file)
@@ -554,12 +510,7 @@ def main_app(doc: Document):
         # Remove from labeled_files if present
         if relative_name in labeled_files:
             labeled_files.remove(relative_name)
-        
-        # Remove the annotated file if it exists
-        output_file = os.path.join(output_csv_dir, relative_name)
-        if os.path.exists(output_file):
-            os.remove(output_file)
-        
+
         # Clear note and reset class selector
         note.value = ""
         class_select.value = anomaly_classes[0]
