@@ -17,6 +17,7 @@ from css import LAYOUT_SETTINGS
 import os
 import json
 import pandas as pd
+import numpy as np
 cwd = os.path.dirname(os.path.abspath(__file__))
 csv_dir = os.path.join(cwd, "../data/csv_files")
 mapping_file = os.path.join(cwd, "../data/mapping.json")
@@ -314,6 +315,40 @@ def main_app(doc: Document):
         
         return btn
 
+    def convert_global_position(df):
+        # Calculate relative global positions
+        if 'vehicle_global_position.lat' in df.columns:
+            # Convert to degrees first
+            df['vehicle_global_position.lat'] = df['vehicle_global_position.lat']
+            df['vehicle_global_position.lon'] = df['vehicle_global_position.lon']
+            df['vehicle_global_position.alt'] = df['vehicle_global_position.alt']
+            # Convert lat/lon differences to approximate meters
+            # Using simple approximation: 1 degree = 111,111 meters at the equator
+            df['vehicle_global_position.x'] = (df['vehicle_global_position.lon'] - df['vehicle_global_position.lon'].iloc[0]) * 111111 * np.cos(np.radians(df['vehicle_global_position.lat'].iloc[0]))
+            df['vehicle_global_position.y'] = (df['vehicle_global_position.lat'] - df['vehicle_global_position.lat'].iloc[0]) * 111111
+            df['vehicle_global_position.z'] = df['vehicle_global_position.alt'] - df['vehicle_global_position.alt'].iloc[0]
+
+        if 'vehicle_gps_position.lat' in df.columns:
+            # Convert to degrees first
+            df['vehicle_gps_position.lat'] = df['vehicle_gps_position.lat'] * 1e-7
+            df['vehicle_gps_position.lon'] = df['vehicle_gps_position.lon'] * 1e-7
+            df['vehicle_gps_position.alt'] = df['vehicle_gps_position.alt'] * 1e-3
+
+            # Convert lat/lon differences to approximate meters
+            df['vehicle_gps_position.x'] = (df['vehicle_gps_position.lon'] - df['vehicle_gps_position.lon'].iloc[0]) * 111111 * np.cos(np.radians(df['vehicle_gps_position.lat'].iloc[0]))
+            df['vehicle_gps_position.y'] = (df['vehicle_gps_position.lat'] - df['vehicle_gps_position.lat'].iloc[0]) * 111111
+            df['vehicle_gps_position.z'] = df['vehicle_gps_position.alt'] - df['vehicle_gps_position.alt'].iloc[0]
+
+    def invert_z_position(df):
+        if 'vehicle_local_position.z' in df.columns:
+            df['vehicle_local_position.z'] = -df['vehicle_local_position.z']
+        if 'vehicle_local_position_setpoint.z' in df.columns:
+            df['vehicle_local_position_setpoint.z'] = -df['vehicle_local_position_setpoint.z']
+        if 'vehicle_visual_odometry.z' in df.columns:
+            df['vehicle_visual_odometry.z'] = -df['vehicle_visual_odometry.z']
+        if 'vehicle_vision_position.z' in df.columns:
+            df['vehicle_vision_position.z'] = -df['vehicle_vision_position.z']
+
     # Add new function to handle file navigation
     def load_file(relative_name):
         global csv_path, df, current_idx
@@ -337,6 +372,9 @@ def main_app(doc: Document):
         if csv_path and os.path.exists(csv_path):
             # Load the new file
             df = pd.read_csv(csv_path)
+
+            convert_global_position(df)
+            invert_z_position(df)
             
             # Update filename display
             filename_display.text = f"Current file: {relative_name}"  # Show full relative path

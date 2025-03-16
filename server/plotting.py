@@ -15,6 +15,8 @@ figures = [
             {"col": "vehicle_local_position_setpoint.x", "label": "X Setpoint"},
             {"col": "vehicle_visual_odometry.x", "label": "VO X"},
             {"col": "vehicle_vision_position.x", "label": "VO X"},
+            {"col": "vehicle_gps_position.x", "label": "GPS X"},
+            {"col": "vehicle_global_position.x", "label": "Global X"},
         ],
     },
     {
@@ -30,6 +32,8 @@ figures = [
             {"col": "vehicle_local_position_setpoint.y", "label": "Y Setpoint"},
             {"col": "vehicle_visual_odometry.y", "label": "VO Y"},
             {"col": "vehicle_vision_position.y", "label": "VO Y"},
+            {"col": "vehicle_gps_position.y", "label": "GPS Y"},
+            {"col": "vehicle_global_position.y", "label": "Global Y"},
         ],
     },
     {
@@ -50,6 +54,8 @@ figures = [
             #{"col": "vehicle_gps_position.alt", "label": "GPS Alt"},
             #{"col": "sensor_combined.alt", "label": "Sensor Alt"},
             #{"col": "vehicle_global_position.alt", "label": "Global Position Alt"},
+            {"col": "vehicle_gps_position.z", "label": "GPS Z"},
+            {"col": "vehicle_global_position.z", "label": "Global Z"},
         ],
     },
     {
@@ -61,12 +67,18 @@ figures = [
     {
         "title": "Global Position",
         "plots": [
-            {"col": "vehicle_global_position.lat", "label": "Latitude"},
-            {"col": "vehicle_global_position.lon", "label": "Longitude"},
-            {"col": "vehicle_global_position.alt", "label": "Altitude"},
-            {"col": "vehicle_gps_position.lat", "label": "GPS Latitude"},
-            {"col": "vehicle_gps_position.lon", "label": "GPS Longitude"},
-            {"col": "vehicle_gps_position.alt", "label": "GPS Altitude"},   
+            # {"col": "vehicle_global_position.lat", "label": "Latitude"},
+            # {"col": "vehicle_global_position.lon", "label": "Longitude"},
+            # {"col": "vehicle_global_position.alt", "label": "Altitude"},
+            # {"col": "vehicle_gps_position.lat", "label": "GPS Latitude"},
+            # {"col": "vehicle_gps_position.lon", "label": "GPS Longitude"},
+            # {"col": "vehicle_gps_position.alt", "label": "GPS Altitude"},
+            {"col": "vehicle_global_position.x", "label": "X"},
+            {"col": "vehicle_global_position.y", "label": "Y"},
+            {"col": "vehicle_global_position.z", "label": "Z"},
+            {"col": "vehicle_gps_position.x", "label": "GPS X"},
+            {"col": "vehicle_gps_position.y", "label": "GPS Y"},
+            {"col": "vehicle_gps_position.z", "label": "GPS Z"},
         ],
     },
     {
