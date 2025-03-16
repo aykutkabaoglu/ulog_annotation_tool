@@ -355,13 +355,8 @@ def main_app(doc: Document):
         # Show loader and remove plots while loading
         main_content.children = [header] + [loader]
         
-        # Find next unannotated file
+        # Find next file, allowing both annotated and unannotated files
         next_idx = (current_idx + 1) % len(all_files)
-        while next_idx != current_idx:
-            if all_files[next_idx] not in labeled_files:
-                break
-            next_idx = (next_idx + 1) % len(all_files)
-        
         current_idx = next_idx
         load_file(all_files[current_idx])
         update_single_button(all_files[current_idx])
@@ -371,13 +366,8 @@ def main_app(doc: Document):
         # Show loader and remove plots while loading
         main_content.children = [header] + [loader]
 
-        # Find previous unannotated file
+        # Find previous file, allowing both annotated and unannotated files
         prev_idx = (current_idx - 1) % len(all_files)
-        while prev_idx != current_idx:
-            if all_files[prev_idx] not in labeled_files:
-                break
-            prev_idx = (prev_idx - 1) % len(all_files)
-        
         current_idx = prev_idx
         load_file(all_files[current_idx])
         update_single_button(all_files[current_idx])
