@@ -380,6 +380,8 @@ def plot_df(df: pd.DataFrame, mapping: dict = None, file_name: str = None):
 
         # Rotate x-axis labels for better readability
         f["model"].xaxis.major_label_orientation = 0.3
+        f["model"].xaxis.axis_label_text_font_size = '14pt'  # Increase axis label font size
+        f["model"].xaxis.major_label_text_font_size = '12pt'  # Increase tick label font size
 
         # Add flight mode background boxes
         for mode_segment in flight_modes:
