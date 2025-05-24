@@ -9,63 +9,70 @@ from css import apply_plot_theme
 
 figures = [
     {
-        "title": "Position.X",
+        "title": "Position X",
+        "unit": "m",
         "plots": [
-            {"col": "vehicle_local_position.x", "label": "X"},
-            {"col": "vehicle_local_position_setpoint.x", "label": "X Setpoint"},
-            {"col": "vehicle_visual_odometry.x", "label": "VO X"},
-            {"col": "vehicle_vision_position.x", "label": "VO X"},
-            {"col": "vehicle_gps_position.x", "label": "GPS X"},
-            {"col": "vehicle_global_position.x", "label": "Global X"},
+            {"col": "vehicle_local_position.x", "label": "Local Position X"},
+            #{"col": "vehicle_local_position_setpoint.x", "label": "X Setpoint"},
+            {"col": "vehicle_visual_odometry.x", "label": "External Position X"},
+            {"col": "vehicle_vision_position.x", "label": "External Position X"},
+            {"col": "vehicle_gps_position.y", "label": "GPS X"},
+            {"col": "vehicle_global_position.y", "label": "Global Position X"},
         ],
     },
     {
         "title": "Actuator Pitch",
+        "unit": "rad",
         "plots": [
             {"col": "actuator_controls_0.control[1]", "label": "Actuator Pitch"},
         ],
     },
     {
-        "title": "Position.Y",
+        "title": "Position Y",
+        "unit": "m",
         "plots": [
-            {"col": "vehicle_local_position.y", "label": "Y"},
-            {"col": "vehicle_local_position_setpoint.y", "label": "Y Setpoint"},
-            {"col": "vehicle_visual_odometry.y", "label": "VO Y"},
-            {"col": "vehicle_vision_position.y", "label": "VO Y"},
-            {"col": "vehicle_gps_position.y", "label": "GPS Y"},
-            {"col": "vehicle_global_position.y", "label": "Global Y"},
+            {"col": "vehicle_local_position.y", "label": "Local Position Y"},
+            #{"col": "vehicle_local_position_setpoint.y", "label": "Y Setpoint"},
+            {"col": "vehicle_visual_odometry.y", "label": "External Position Y"},
+            {"col": "vehicle_vision_position.y", "label": "External Position Y"},
+            {"col": "vehicle_gps_position.x", "label": "GPS Y"},
+            {"col": "vehicle_global_position.x", "label": "Global Position Y"},
         ],
     },
     {
         "title": "Actuator Roll",
+        "unit": "rad",
         "plots": [
             {"col": "actuator_controls_0.control[0]", "label": "Actuator Roll"},
         ],
     },
     {
-        "title": "Position.Z",
+        "title": "Position Z",
+        "unit": "m",
         "plots": [
             {"col": "vehicle_local_position.z", "label": "Z"}, # invert the data
-            {"col": "vehicle_local_position_setpoint.z", "label": "Z Setpoint"}, # invert the data
+            #{"col": "vehicle_local_position_setpoint.z", "label": "Z Setpoint"}, # invert the data
             #{"col": "vehicle_air_data.baro_alt_meter", "label": "Altitude(m)"},
             {"col": "distance_sensor.current_distance", "label": "Distance Sensor"},
-            {"col": "vehicle_visual_odometry.z", "label": "VO Z"},
-            {"col": "vehicle_vision_position.z", "label": "VO Z"},
+            {"col": "vehicle_visual_odometry.z", "label": "External Position Z"},
+            {"col": "vehicle_vision_position.z", "label": "External Position Z"},
             #{"col": "vehicle_gps_position.alt", "label": "GPS Alt"},
             #{"col": "sensor_combined.alt", "label": "Sensor Alt"},
             #{"col": "vehicle_global_position.alt", "label": "Global Position Alt"},
             {"col": "vehicle_gps_position.z", "label": "GPS Z"},
-            {"col": "vehicle_global_position.z", "label": "Global Z"},
+            {"col": "vehicle_global_position.z", "label": "Global Position Z"},
         ],
     },
     {
-        "title": "Actuator Thrust",
+        "title": "Actuator Thrust Command",
+        "unit": "normalized",
         "plots": [
             {"col": "actuator_controls_0.control[3]", "label": "Actuator Thrust"},
         ],
     },
     {
         "title": "Global Position",
+        "unit": "m",
         "plots": [
             # {"col": "vehicle_global_position.lat", "label": "Latitude"},
             # {"col": "vehicle_global_position.lon", "label": "Longitude"},
@@ -73,9 +80,9 @@ figures = [
             # {"col": "vehicle_gps_position.lat", "label": "GPS Latitude"},
             # {"col": "vehicle_gps_position.lon", "label": "GPS Longitude"},
             # {"col": "vehicle_gps_position.alt", "label": "GPS Altitude"},
-            {"col": "vehicle_global_position.x", "label": "X"},
-            {"col": "vehicle_global_position.y", "label": "Y"},
-            {"col": "vehicle_global_position.z", "label": "Z"},
+            {"col": "vehicle_global_position.x", "label": "Global Position X"},
+            {"col": "vehicle_global_position.y", "label": "Global Position Y"},
+            {"col": "vehicle_global_position.z", "label": "Global Position Z"},
             {"col": "vehicle_gps_position.x", "label": "GPS X"},
             {"col": "vehicle_gps_position.y", "label": "GPS Y"},
             {"col": "vehicle_gps_position.z", "label": "GPS Z"},
@@ -83,17 +90,19 @@ figures = [
     },
     {
         "title": "External Position",
+        "unit": "m",
         "plots": [
-            {"col": "vehicle_vision_position.x", "label": "VO X"},
-            {"col": "vehicle_vision_position.y", "label": "VO Y"},
-            {"col": "vehicle_vision_position.z", "label": "VO Z"},
-            {"col": "vehicle_visual_odometry.x", "label": "VO X"},
-            {"col": "vehicle_visual_odometry.y", "label": "VO Y"},
-            {"col": "vehicle_visual_odometry.z", "label": "VO Z"},
+            {"col": "vehicle_vision_position.x", "label": "External Position X"},
+            {"col": "vehicle_vision_position.y", "label": "External Position Y"},
+            {"col": "vehicle_vision_position.z", "label": "External Position Z"},
+            {"col": "vehicle_visual_odometry.x", "label": "External Position X"},
+            {"col": "vehicle_visual_odometry.y", "label": "External Position Y"},
+            {"col": "vehicle_visual_odometry.z", "label": "External Position Z"},
         ],
     },
     {
-        "title": "Attitude.Roll",
+        "title": "Attitude Roll",
+        "unit": "rad",
         "plots": [
             {"col": "actuator_controls_0.control[0]", "label": "Actuator Roll"},
             {"col": "vehicle_attitude.q[0]", "label": "q[0]"}, # convert to roll
@@ -101,7 +110,8 @@ figures = [
         ],
     },
     {
-        "title": "Attitude.Pitch",
+        "title": "Attitude Pitch",
+        "unit": "rad",
         "plots": [
             {"col": "actuator_controls_0.control[1]", "label": "Actuator Pitch"},
             {"col": "vehicle_attitude.q[0]", "label": "q[0]"}, # convert to pitch
@@ -109,15 +119,17 @@ figures = [
         ],
     },
     {
-        "title": "Attitude.Yaw",
+        "title": "Attitude Yaw",
+        "unit": "rad",
         "plots": [
-            {"col": "vehicle_local_position.yaw", "label": "Local Yaw"},
+            {"col": "vehicle_local_position.yaw", "label": "Local Position Yaw"},
             {"col": "vehicle_local_position_setpoint.yaw", "label": "Local Setpoint Yaw"},
             {"col": "actuator_controls_0.control[2]", "label": "Actuator Yaw"},
         ],
     },
     {
         "title": "Roll Rate",
+        "unit": "rad/s",
         "plots": [
             {"col": "vehicle_rates_setpoint.roll", "label": "Roll Rate Setpoint"},
             {"col": "actuator_controls_0.control[0]", "label": "Actuator Roll"},
@@ -126,6 +138,7 @@ figures = [
     },
     {
         "title": "Pitch Rate",
+        "unit": "rad/s",
         "plots": [
             {"col": "vehicle_rates_setpoint.pitch", "label": "Pitch Rate Setpoint"},
             {"col": "actuator_controls_0.control[1]", "label": "Actuator Pitch"},
@@ -134,6 +147,7 @@ figures = [
     },
     {
         "title": "Yaw Rate",
+        "unit": "rad/s",
         "plots": [
             {"col": "vehicle_rates_setpoint.yaw", "label": "Yaw Rate Setpoint"},
             {"col": "actuator_controls_0.control[2]", "label": "Actuator Yaw"},
@@ -142,6 +156,7 @@ figures = [
     },
     {
         "title": "Velocity",
+        "unit": "m/s",
         "plots": [
             {"col": "vehicle_local_position.vx", "label": "Vx"},
             {"col": "vehicle_local_position_setpoint.vx", "label": "Vx Setpoint"},
@@ -153,22 +168,25 @@ figures = [
     },
     {
         "title": "Vehicle Angular Velocity",
+        "unit": "rad/s",
         "plots": [
-            {"col": "vehicle_angular_velocity.xyz[0]", "label": "X"},
-            {"col": "vehicle_angular_velocity.xyz[1]", "label": "Y"},
-            {"col": "vehicle_angular_velocity.xyz[2]", "label": "Z"},
+            {"col": "vehicle_angular_velocity.xyz[0]", "label": "wx"},
+            {"col": "vehicle_angular_velocity.xyz[1]", "label": "wy"},
+            {"col": "vehicle_angular_velocity.xyz[2]", "label": "wz"},
         ],
     },
     {
         "title": "Raw Acceleration",
+        "unit": "m/s²",
         "plots": [
-            {"col": "sensor_combined.accelerometer_m_s2[0]", "label": "X"},
-            {"col": "sensor_combined.accelerometer_m_s2[1]", "label": "Y"},
-            {"col": "sensor_combined.accelerometer_m_s2[2]", "label": "Z"},
+            {"col": "sensor_combined.accelerometer_m_s2[0]", "label": "ax"},
+            {"col": "sensor_combined.accelerometer_m_s2[1]", "label": "ay"},
+            {"col": "sensor_combined.accelerometer_m_s2[2]", "label": "az"},
         ],
     },
     {
         "title": "Acceleration",
+        "unit": "m/s²",
         "plots": [
             {"col": "vehicle_local_position.ax", "label": "ax"},
             {"col": "vehicle_local_position.ay", "label": "ay"},
@@ -177,6 +195,7 @@ figures = [
     },
     {
         "title": "Gyroscope",
+        "unit": "rad/s",
         "plots": [
             {"col": "sensor_combined.gyro_rad[0]", "label": "gx"},
             {"col": "sensor_combined.gyro_rad[1]", "label": "gy"},
@@ -185,16 +204,18 @@ figures = [
     },    
     {
         "title": "Magnetometer",
+        "unit": "gauss",
         "plots": [
-            {"col": "vehicle_magnetometer.magnetometer_ga[0]", "label": "X"},
-            {"col": "vehicle_magnetometer.magnetometer_ga[1]", "label": "Y"},
-            {"col": "vehicle_magnetometer.magnetometer_ga[2]", "label": "Z"},
+            {"col": "vehicle_magnetometer.magnetometer_ga[0]", "label": "mx"},
+            {"col": "vehicle_magnetometer.magnetometer_ga[1]", "label": "my"},
+            {"col": "vehicle_magnetometer.magnetometer_ga[2]", "label": "mz"},
             {"col": "battery_status.current_a", "label": "Current"},
-            {"col": "actuator_controls_0.control[3]", "label": "Thrust"},
+            #{"col": "actuator_controls_0.control[3]", "label": "Thrust"},
         ],
     },
     {
-        "title": "Actuator Controls",
+        "title": "Actuator Control Commands",
+        "unit": "normalized",
         "plots": [
             {"col": "actuator_controls_0.control[0]", "label": "Roll"},
             {"col": "actuator_controls_0.control[1]", "label": "Pitch"},
@@ -204,33 +225,37 @@ figures = [
     },
     {
         "title": "Actuator Outputs",
+        "unit": "pwm",
         "plots": [
-            {"col": "actuator_outputs.output[0]", "label": "Output 0"},
-            {"col": "actuator_outputs.output[1]", "label": "Output 1"},
-            {"col": "actuator_outputs.output[2]", "label": "Output 2"},
-            {"col": "actuator_outputs.output[3]", "label": "Output 3"},
+            {"col": "actuator_outputs.output[0]", "label": "Motor 1"},
+            {"col": "actuator_outputs.output[1]", "label": "Motor 2"},
+            {"col": "actuator_outputs.output[2]", "label": "Motor 3"},
+            {"col": "actuator_outputs.output[3]", "label": "Motor 4"},
         ],
     },
     {
-        "title": "Manual Control",
+        "title": "Manual Control Commands",
+        "unit": "normalized",
         "plots": [
             {"col": "manual_control_setpoint.x", "label": "Manual Roll"},
             {"col": "manual_control_setpoint.y", "label": "Manual Pitch"},
             {"col": "manual_control_setpoint.r", "label": "Manual Yaw"},
             {"col": "manual_control_setpoint.z", "label": "Manual Throttle"},
-            {"col": "manual_control_setpoint.kill_switch", "label": "Kill Switch"},
+            #{"col": "manual_control_setpoint.kill_switch", "label": "Kill Switch"},
         ],
     },
     {
         "title": "Vibration",
+        "unit": "m/s",
         "plots": [
-            {"col": "estimator_status.vibe[0]", "label": "Vibration X"},
-            {"col": "estimator_status.vibe[1]", "label": "Vibration Y"},
-            {"col": "estimator_status.vibe[2]", "label": "Vibration Z"},
+            # {"col": "estimator_status.vibe[0]", "label": "Vibration X"},
+            # {"col": "estimator_status.vibe[1]", "label": "Vibration Y"},
+            {"col": "estimator_status.vibe[2]", "label": "Delta Velocity Vibration"},
         ],
     },
     {
         "title": "Battery",
+        "unit": "V/A/%",
         "plots": [
             {"col": "battery_status.voltage_v", "label": "Voltage"},
             {"col": "battery_status.current_a", "label": "Current"},
@@ -361,6 +386,7 @@ def plot_df(df: pd.DataFrame, mapping: dict = None, file_name: str = None):
             aspect_ratio=3,  # Width:Height ratio of 3:1
             title=f["title"],
             x_axis_label='Time (HH:MM:SS)',
+            y_axis_label=f["unit"],  # Use the unit field instead of extracting from title
             margin=(30, 50, 30, 50),  # (top, right, bottom, left) margins in pixels
         )
 
@@ -419,10 +445,10 @@ def plot_df(df: pd.DataFrame, mapping: dict = None, file_name: str = None):
                 x = df['datetime']
 
                 # Check if this is a quaternion plot
-                if f["title"] == "Attitude.Roll":
+                if f["title"] == "Attitude Roll":
                     y, _, _, label = check_quaternion_plot(df, p["col"])
                     label = "Roll " + label
-                elif f["title"] == "Attitude.Pitch":
+                elif f["title"] == "Attitude Pitch":
                     _, y, _, label = check_quaternion_plot(df, p["col"])
                     label = "Pitch " + label
                 else:
