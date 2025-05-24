@@ -58,7 +58,7 @@ for idx, file in enumerate(all_files):
 def main_app(doc: Document):  
     # Customize your classes  
     anomaly_classes = ['Uncategorized', 'Normal','Mechanical', 'Altitude', 'External Position', 
-                       'Heading', 'Global Position', 'Electrical']  
+                       'Global Position']  
     
     # Calculate statistics
     total_files = len(all_files)
