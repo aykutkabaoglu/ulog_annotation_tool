@@ -26,29 +26,15 @@
    pip3 install -r requirements.txt
    ```
 
-### Download log files:
-
-Use the `./preprocessing/download_logs.py` script to download ulog files from PX4 flight review's
-database. Download options are specified in the `./preprocessing/downloader_options.yaml` file.
-Update the download parameters as desired and then run the following command:
-
-   ```bash
-   python3 preprocessing/download_logs.py
-   ```
-
-The above command will start downloading ulog files in the `./data/ulg_files` directory.
-
 ### Create database:
 
-Once you have downloaded the ulog files, you need to convert them to csv files for the
-application to serve the log files to users. Running the following command will convert
-the ulog files into csv files and store them in the `./data/csv_files` directory.
+Put your ulg files under `./data/ulg_files`. Then, run ulog2csv script to convert ulg files to csv files under  `./data/csv_files`.
 
    ```bash
    python3 preprocessing/ulog2csv.py
    ```
 
-You can either run the script with the default options or specify the `--skip-processed` flag to skip files that have already been processed. If you use get_all_topics() function, you can convert all the topics and fields to from ulog file to csv, or you can specify the topics and fields you want to convert by using get_custom_topics() function.
+You can either run the script with the default options or specify the `--skip-processed` flag to skip files that have already been processed. If you use get_all_topics() function, you can convert all the topics and fields to from ulog file to csv, or you can specify the topics and fields you want to convert by using get_custom_topics() function. The script uses synchronize_timeseries() function to subsample or upsample the ulg files to balance the number of rows of dataframes. You can disable it to store full-sized csv as same as ulg file.
 
 ### Run the server:
 
@@ -58,9 +44,7 @@ Now you are all set and you can run the server by issuing the following command,
    python3 server/app.py
    ```
 
-All the annotated files will be stored in csv format in the `./data/annotated_csv_files`
-directory.
-
+All the annotated files will be stored in `mapping.json` file under `./data` folder. You can re-annotated the previos files and mapping.json file will be updated accordingly. It stores file names considering the folder hierarchy and timestamps of annotated windows. You can add multiple annotation into single file.
 
 ## License
 
