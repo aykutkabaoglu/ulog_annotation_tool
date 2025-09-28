@@ -1,5 +1,8 @@
 # Annotate ULOG Files / PX4 Logs
 
+[![DOI](https://zenodo.org/badge/907262431.svg)](https://doi.org/10.5281/zenodo.17220628)
+
+
 ## Features
 - Multiclass labeling
 - Visualization of former annotated logs
@@ -28,7 +31,8 @@
 
 ### Create database:
 
-Put your ulg files under `./data/ulg_files`. Then, run ulog2csv script to convert ulg files to csv files under  `./data/csv_files`.
+Put your ulg files under `./data/ulg_files`. Then, run ulog2csv script to convert ulg files to csv files under  `./data/csv_files`. 
+You can download example dataset from [uav-flight-anomaly-dataset](https://huggingface.co/datasets/aykutkabaoglu/uav-flight-anomaly-dataset) with the annotations, put all the downloaded files under `./data` folder.
 
    ```bash
    python3 preprocessing/ulog2csv.py
